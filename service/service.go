@@ -22,11 +22,11 @@ var logger = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level:
 
 type emailAddress string
 
-type keyring map[emailAddress]*ssh.PublicKey
+type keyring map[emailAddress][]ssh.PublicKey
 
 type principal struct {
 	emailAddresses []emailAddress
-	publicKey      ssh.PublicKey
+	publicKeys     []ssh.PublicKey
 }
 
 type Service struct {
@@ -39,7 +39,7 @@ func newKeyring(principals []principal) keyring {
 	k := make(keyring)
 	for _, p := range principals {
 		for _, emailAddress := range p.emailAddresses {
-			k[emailAddress] = &p.publicKey
+			k[emailAddress] = p.publicKeys
 		}
 	}
 	return k
@@ -75,8 +75,9 @@ func (s Service) pushEventStatus(ctx context.Context, event *github.PushEvent) g
 
 	signature := []byte(*commit.Commit.Verification.Signature)
 	message := []byte(*commit.Commit.Verification.Payload)
-	publicKey := *s.keyring[emailAddress(*commit.Commit.Committer.Email)]
-	if publicKey == nil {
+	publicKeys := s.keyring[emailAddress(*commit.Commit.Committer.Email)]
+
+	if len(publicKeys) == 0 {
 		state = "error"
 		description = fmt.Sprintf("missing public key for email address %s",
 			*commit.Commit.Committer.Email)
@@ -85,10 +86,16 @@ func (s Service) pushEventStatus(ctx context.Context, event *github.PushEvent) g
 		return github.RepoStatus{State: &state, Description: &description, Context: &context}
 	}
 
-	err = verifier.VerifySSHSignature(message, signature, publicKey)
-	if err != nil {
+	var verifierError error
+	for _, publicKey := range publicKeys {
+		verifierError = verifier.VerifySSHSignature(message, signature, publicKey)
+		if verifierError == nil {
+			break
+		}
+	}
+	if verifierError != nil {
 		state = "failure"
-		description = err.Error()
+		description = verifierError.Error()
 		logger.Debug("Commit has bad signature",
 			slog.String("commit", *event.After), slog.String("error", description))
 		return github.RepoStatus{State: &state, Description: &description, Context: &context}
@@ -186,7 +193,7 @@ func populateKeyring() (keyring, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := principal{emailAddresses: []emailAddress{"git@fionn.computer"}, publicKey: publicKey}
+	p := principal{emailAddresses: []emailAddress{"git@fionn.computer"}, publicKeys: []ssh.PublicKey{publicKey}}
 	return newKeyring([]principal{p}), nil
 }
 

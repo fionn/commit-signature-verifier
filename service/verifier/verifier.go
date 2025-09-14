@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/hiddeco/sshsig"
 	"golang.org/x/crypto/ssh"
@@ -23,7 +24,9 @@ func VerifySSHSignature(message []byte, signatureBytes []byte, publicKey ssh.Pub
 		slog.String("hashAlgorithm", signature.HashAlgorithm.String()),
 		slog.String("namespace", signature.Namespace),
 	)
-	logger.Debug("Verifying message", slog.String("message", string(message)))
+	logger.Debug("Verifying message",
+		slog.String("message", string(message)),
+		slog.String("public_key", strings.TrimSpace(string(ssh.MarshalAuthorizedKey(publicKey)))))
 
 	return sshsig.Verify(
 		bytes.NewReader(message),
