@@ -10,12 +10,13 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
+	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-
-	"github.com/bradleyfalzon/ghinstallation/v2"
-	"github.com/fionn/commit-verifier/service/verifier"
+	"github.com/goccy/go-yaml"
 	"github.com/google/go-github/v74/github"
+
+	"github.com/fionn/commit-verifier/service/verifier"
 )
 
 var logger = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
@@ -25,8 +26,8 @@ type emailAddress string
 type keyring map[emailAddress][]ssh.PublicKey
 
 type principal struct {
-	emailAddresses []emailAddress
-	publicKeys     []ssh.PublicKey
+	EmailAddresses []emailAddress  `yaml:"email_addresses"`
+	PublicKeys     []ssh.PublicKey `yaml:"public_keys"`
 }
 
 type Service struct {
@@ -38,8 +39,8 @@ type Service struct {
 func newKeyring(principals []principal) keyring {
 	k := make(keyring)
 	for _, p := range principals {
-		for _, emailAddress := range p.emailAddresses {
-			k[emailAddress] = p.publicKeys
+		for _, emailAddress := range p.EmailAddresses {
+			k[emailAddress] = p.PublicKeys
 		}
 	}
 	return k
@@ -187,14 +188,23 @@ func newGitHubClient() (*github.Client, []byte, error) {
 	return github.NewClient(&http.Client{Transport: itr}), webhookSecret, nil
 }
 
-// URGH.
-func populateKeyring() (keyring, error) {
-	publicKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILbkp0LwqqV/w6wAGV9bwiR6FpHC/5DtiBAKFLZxvaSp fionn@lotus"))
-	if err != nil {
+func PopulateKeyring(data []byte) (keyring, error) {
+	var principals []principal
+	if err := yaml.Unmarshal(data, &principals); err != nil {
 		return nil, err
 	}
-	p := principal{emailAddresses: []emailAddress{"git@fionn.computer"}, publicKeys: []ssh.PublicKey{publicKey}}
-	return newKeyring([]principal{p}), nil
+
+	fmt.Println(string(data))
+	fmt.Printf("%+v\n", principals)
+
+	return newKeyring(principals), nil
+
+	// publicKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILbkp0LwqqV/w6wAGV9bwiR6FpHC/5DtiBAKFLZxvaSp fionn@lotus"))
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// p := principal{emailAddresses: []emailAddress{"git@fionn.computer"}, publicKeys: []ssh.PublicKey{publicKey}}
+	// return newKeyring([]principal{p}), nil
 }
 
 func Run() {
@@ -203,7 +213,18 @@ func Run() {
 		panic(err)
 	}
 
-	keyring, err := populateKeyring()
+	principalsPath, ok := os.LookupEnv("PRINCIPALS_PATH")
+	if !ok {
+		principalsPath = "principals.yaml"
+	}
+
+	logger.Debug("Loading principals", slog.String("path", principalsPath))
+	data, err := os.ReadFile(principalsPath)
+	if err != nil {
+		panic(err)
+	}
+
+	keyring, err := PopulateKeyring(data)
 	if err != nil {
 		panic(err)
 	}
