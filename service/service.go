@@ -29,12 +29,12 @@ type Service struct {
 	allowedSigners []xssh.AllowedSigner
 }
 
-func (s Service) pushEventStatus(ctx context.Context, event *github.PushEvent) github.RepoStatus {
+func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) github.RepoStatus {
 	var state string
 	var description string
 	context := "commit-signature"
 
-	commit, _, err := s.github.Repositories.GetCommit(
+	repositoryCommit, _, err := s.github.Repositories.GetCommit(
 		ctx,
 		*event.Repo.Owner.Name,
 		*event.Repo.Name,
@@ -49,16 +49,19 @@ func (s Service) pushEventStatus(ctx context.Context, event *github.PushEvent) g
 		return github.RepoStatus{State: &state, Description: &description, Context: &context}
 	}
 
-	if !*commit.Commit.Verification.Verified {
+	commit := repositoryCommit.Commit
+	commit.SHA = repositoryCommit.SHA
+
+	if !*commit.Verification.Verified {
 		state = "failure"
-		description = *commit.Commit.Verification.Reason
+		description = *commit.Verification.Reason
 		logger.Debug("Commit unverified on GitHub",
-			slog.String("commit", *event.After), slog.String("reason", description))
+			slog.String("commit", *commit.SHA), slog.String("reason", description))
 		return github.RepoStatus{State: &state, Description: &description, Context: &context}
 	}
 
-	signature := []byte(*commit.Commit.Verification.Signature)
-	message := []byte(*commit.Commit.Verification.Payload)
+	signature := []byte(*commit.Verification.Signature)
+	message := []byte(*commit.Verification.Payload)
 
 	// TODO: take the allowedSigners object as a first class entity and
 	// pass that straight through to the validation instead.
@@ -67,7 +70,7 @@ func (s Service) pushEventStatus(ctx context.Context, event *github.PushEvent) g
 	// allowed signers have literal principals, not patterns.
 	var publicKeys []ssh.PublicKey
 	for _, signer := range s.allowedSigners {
-		if slices.Contains(signer.Principals, *commit.Commit.Committer.Email) {
+		if slices.Contains(signer.Principals, *commit.Committer.Email) {
 			publicKeys = append(publicKeys, signer.PublicKey)
 		}
 	}
@@ -75,9 +78,9 @@ func (s Service) pushEventStatus(ctx context.Context, event *github.PushEvent) g
 	if len(publicKeys) == 0 {
 		state = "error"
 		description = fmt.Sprintf("missing public key for committer %s",
-			*commit.Commit.Committer.Email)
-		logger.Debug("Missing public key", slog.String("commit", *event.After),
-			slog.String("committer", *commit.Commit.Committer.Email))
+			*commit.Committer.Email)
+		logger.Debug("Missing public key", slog.String("commit", *commit.SHA),
+			slog.String("committer", *commit.Committer.Email))
 		return github.RepoStatus{State: &state, Description: &description, Context: &context}
 	}
 
@@ -94,13 +97,13 @@ func (s Service) pushEventStatus(ctx context.Context, event *github.PushEvent) g
 		state = "failure"
 		description = verifierError.Error()
 		logger.Debug("Commit has bad signature",
-			slog.String("commit", *event.After), slog.String("error", description))
+			slog.String("commit", *commit.SHA), slog.String("error", description))
 		return github.RepoStatus{State: &state, Description: &description, Context: &context}
 	}
 
 	state = "success"
-	description = fmt.Sprintf("Commit %s has good signature", (*event.After)[:7])
-	logger.Debug(description, slog.String("commit", *event.After))
+	description = fmt.Sprintf("Commit %s has good signature", (*commit.SHA)[:7])
+	logger.Debug(description, slog.String("commit", *commit.SHA))
 	return github.RepoStatus{State: &state, Description: &description, Context: &context}
 }
 
@@ -122,7 +125,7 @@ func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	switch event := event.(type) {
 	case *github.PushEvent:
 		ctx := context.Background()
-		status := s.pushEventStatus(ctx, event)
+		status := s.statusFromEvent(ctx, event)
 		_, _, err := s.github.Repositories.CreateStatus(
 			ctx,
 			*event.Repo.Owner.Name,
