@@ -1,4 +1,4 @@
-module github.com/fionn/commit-verifier
+module github.com/fionn/commit-signature-verifier
 
 go 1.25.1
 

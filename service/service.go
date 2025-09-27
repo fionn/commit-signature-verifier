@@ -14,8 +14,9 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
-	"github.com/fionn/commit-verifier/service/verifier"
 	"github.com/google/go-github/v74/github"
+
+	"github.com/fionn/commit-signature-verifier/service/verifier"
 )
 
 var logger = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))

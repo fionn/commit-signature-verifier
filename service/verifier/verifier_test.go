@@ -5,7 +5,7 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"github.com/fionn/commit-verifier/service/verifier"
+	"github.com/fionn/commit-signature-verifier/service/verifier"
 )
 
 var publicKey, _, _, _, _ = ssh.ParseAuthorizedKey([]byte("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILbkp0LwqqV/w6wAGV9bwiR6FpHC/5DtiBAKFLZxvaSp fionn@lotus"))

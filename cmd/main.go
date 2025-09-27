@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/fionn/commit-verifier/service"
+	"github.com/fionn/commit-signature-verifier/service"
 )
 
 func main() {
