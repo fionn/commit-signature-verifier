@@ -15,6 +15,31 @@ import (
 
 var logger = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
+func Verify(message []byte, signature []byte, identity string, allowedSigners []AllowedSigner, namespace string, timestamp time.Time) error {
+	// Shortcut: we should be checking glob matches but we're assuming the
+	// allowed signers have literal principals, not patterns.
+	var filteredAllowedSigners []AllowedSigner
+	for _, allowedSigner := range allowedSigners {
+		if slices.Contains(allowedSigner.Principals, identity) {
+			filteredAllowedSigners = append(filteredAllowedSigners, allowedSigner)
+		}
+	}
+
+	if len(filteredAllowedSigners) == 0 {
+		logger.Info("Missing public key", slog.String("identity", identity))
+		return fmt.Errorf("missing public key for identity %s", identity)
+	}
+
+	var err error
+	for _, allowedSigner := range filteredAllowedSigners {
+		err = VerifySignature(message, signature, allowedSigner, namespace, timestamp)
+		if err == nil {
+			break
+		}
+	}
+	return err
+}
+
 func VerifySignature(message []byte, signatureBytes []byte, allowedSigner AllowedSigner, namespace string, timestamp time.Time) error {
 	signature, err := sshsig.Unarmor(signatureBytes)
 	if err != nil {
@@ -45,8 +70,6 @@ func VerifySignature(message []byte, signatureBytes []byte, allowedSigner Allowe
 		timestamp.Compare(allowedSigner.Options.ValidBefore) == 1 {
 		return fmt.Errorf("signature is no longer valid")
 	}
-
-	fmt.Println(slices.Compare(signature.PublicKey.Marshal(), allowedSigner.PublicKey.Marshal()))
 
 	return sshsig.Verify(
 		bytes.NewReader(message),

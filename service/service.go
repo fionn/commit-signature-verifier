@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"slices"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
@@ -59,43 +58,24 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) g
 
 	signature := []byte(*commit.Verification.Signature)
 	message := []byte(*commit.Verification.Payload)
+	signerIdentity := *commit.Committer.Email
+	// There's an argument that the only timestamp we know is not forged is
+	// our own, since if a key has a valid-before option specified we have
+	// to assume it's not trustworthy afterwards, at which point an attacker
+	// with access to the assumed compromised key could sign a commit with a
+	// timestamp prior to valid-before, which would pass validation.
+	//
+	// We do want to allow pushing old commits, however, so we accept this risk,
+	// which is partially mitigated by the above check that GitHub performs,
+	// which is done at time of push.
+	// https://github.blog/changelog/2024-11-12-persistent-commit-signature-verification-now-in-public-preview/
+	timestamp := *commit.Committer.Date.GetTime()
 
-	// Shortcut: we should be checking glob matches but we're assuming the
-	// allowed signers have literal principals, not patterns.
-	var allowedSigners []xssh.AllowedSigner
-	for _, signer := range s.allowedSigners {
-		if slices.Contains(signer.Principals, *commit.Committer.Email) {
-			allowedSigners = append(allowedSigners, signer)
-		}
-	}
-
-	if len(allowedSigners) == 0 {
-		state = "error"
-		description = fmt.Sprintf("missing public key for committer %s",
-			*commit.Committer.Email)
-		logger.Debug("Missing public key", slog.String("commit", *commit.SHA),
-			slog.String("committer", *commit.Committer.Email))
-		return github.RepoStatus{State: &state, Description: &description, Context: &context}
-	}
-
-	var verifierError error
-	for _, allowedSigner := range allowedSigners {
-		// There's an argument that the only timestamp we know is not forged is
-		// our own, since if a key has a valid-before option specified we have
-		// to assume it's not trustworthy afterwards, at which point an attacker
-		// with access to the assumed compromised key could sign a commit with a
-		// timestamp prior to valid-before, which would pass validation. We
-		// stick the the specification, however, and validate at commit time.
-		verifierError = xssh.VerifySignature(message, signature, allowedSigner,
-			"git", *commit.Committer.Date.GetTime())
-		if verifierError == nil {
-			break
-		}
-	}
-	if verifierError != nil {
+	err = xssh.Verify(message, signature, signerIdentity, s.allowedSigners, "git", timestamp)
+	if err != nil {
 		state = "failure"
-		description = verifierError.Error()
-		logger.Debug("Commit has bad signature",
+		description = err.Error()
+		logger.Info("Commit has bad signature",
 			slog.String("commit", *commit.SHA), slog.String("error", description))
 		return github.RepoStatus{State: &state, Description: &description, Context: &context}
 	}
