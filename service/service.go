@@ -17,21 +17,16 @@ import (
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/google/go-github/v74/github"
 
-	"github.com/fionn/commit-signature-verifier/service/ssh_allowed_signers"
+	xssh "github.com/fionn/commit-signature-verifier/service/ssh_allowed_signers"
 	"github.com/fionn/commit-signature-verifier/service/verifier"
 )
 
 var logger = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-type allowedSigner struct {
-	emailAddressPatterns []string // TODO: type.
-	publicKey            ssh.PublicKey
-}
-
 type Service struct {
 	github         *github.Client
 	webhookSecret  []byte // TODO: type.
-	allowedSigners []allowedSigner
+	allowedSigners []xssh.AllowedSigner
 }
 
 func (s Service) pushEventStatus(ctx context.Context, event *github.PushEvent) github.RepoStatus {
@@ -65,21 +60,21 @@ func (s Service) pushEventStatus(ctx context.Context, event *github.PushEvent) g
 	signature := []byte(*commit.Commit.Verification.Signature)
 	message := []byte(*commit.Commit.Verification.Payload)
 
-	// TODO: take a (hypothetical) allowed signers object as a first class
-	// entity and pass that straight through to the validation instead.
+	// TODO: take the allowedSigners object as a first class entity and
+	// pass that straight through to the validation instead.
 
 	// Shortcut: we should be checking glob matches but we're assuming the
 	// allowed signers have literal principals, not patterns.
 	var publicKeys []ssh.PublicKey
 	for _, signer := range s.allowedSigners {
-		if slices.Contains(signer.emailAddressPatterns, *commit.Commit.Committer.Email) {
-			publicKeys = append(publicKeys, signer.publicKey)
+		if slices.Contains(signer.Principals, *commit.Commit.Committer.Email) {
+			publicKeys = append(publicKeys, signer.PublicKey)
 		}
 	}
 
 	if len(publicKeys) == 0 {
 		state = "error"
-		description = fmt.Sprintf("missing public key for email address %s",
+		description = fmt.Sprintf("missing public key for committer %s",
 			*commit.Commit.Committer.Email)
 		logger.Debug("Missing public key", slog.String("commit", *event.After),
 			slog.String("committer", *commit.Commit.Committer.Email))
@@ -180,8 +175,7 @@ func newGitHubClient() (*github.Client, []byte, error) {
 	privateKey := []byte(privateKeyStr)
 
 	tr := http.DefaultTransport
-	itr, err := ghinstallation.New(
-		tr, appID, installationID, privateKey)
+	itr, err := ghinstallation.New(tr, appID, installationID, privateKey)
 	if err != nil {
 		return nil, webhookSecret, err
 	}
@@ -190,14 +184,13 @@ func newGitHubClient() (*github.Client, []byte, error) {
 }
 
 // URGH.
-func populateAllowedSigners() ([]allowedSigner, error) {
+func populateAllowedSigners() ([]xssh.AllowedSigner, error) {
 	allowedSignerBytes := []byte(`git@fionn.computer namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILbkp0LwqqV/w6wAGV9bwiR6FpHC/5DtiBAKFLZxvaSp fionn@lotus`)
-	principals, _, publicKey, _, _, err := ssh_allowed_signers.ParseAllowedSigner(allowedSignerBytes)
+	allowedSigner, err := xssh.ParseAllowedSigner(allowedSignerBytes)
 	if err != nil {
 		return nil, err
 	}
-	p := allowedSigner{emailAddressPatterns: principals, publicKey: publicKey}
-	return []allowedSigner{p}, nil
+	return []xssh.AllowedSigner{*allowedSigner}, nil
 }
 
 func Run() {

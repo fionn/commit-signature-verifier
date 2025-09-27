@@ -16,6 +16,14 @@ type Options struct {
 	ValidAfter    time.Time
 }
 
+type AllowedSigner struct {
+	Principals []string
+	Options    Options
+	PublicKey  ssh.PublicKey
+	Comment    string
+	Rest       []byte
+}
+
 func parseTimestamp(timestamp string) (time.Time, error) {
 	timestamp, _ = strings.CutSuffix(timestamp, "Z")
 	timestampLength := len(timestamp)
@@ -69,21 +77,22 @@ func parseOptions(options []string) (optionsStruct Options, err error) {
 	return optionsStruct, nil
 }
 
-func ParseAllowedSigner(in []byte) (principals []string, otions Options, pubKey ssh.PublicKey, comment string, rest []byte, err error) {
+func ParseAllowedSigner(in []byte) (allowedSigner *AllowedSigner, err error) {
 	principalsBytes, authorizedKeyBytes, found := bytes.Cut(in, []byte(" "))
 	if !found {
-		return nil, Options{}, nil, "", nil, fmt.Errorf("failed to parse allowed signer %s", in)
+		return nil, fmt.Errorf("failed to parse allowed signer %s", in)
 	}
 
-	pubKey, comment, optionsStr, rest, err := ssh.ParseAuthorizedKey(authorizedKeyBytes)
+	publicKey, comment, optionsStr, rest, err := ssh.ParseAuthorizedKey(authorizedKeyBytes)
 	if err != nil {
-		return nil, Options{}, nil, comment, nil, err
+		return nil, err
 	}
 
+	var principals []string
 	for v := range bytes.SplitSeq(principalsBytes, []byte(",")) {
 		principals = append(principals, string(v))
 	}
 
 	options, err := parseOptions(optionsStr)
-	return principals, options, pubKey, comment, rest, err
+	return &AllowedSigner{principals, options, publicKey, comment, rest}, err
 }
