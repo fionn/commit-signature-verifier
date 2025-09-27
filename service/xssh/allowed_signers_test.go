@@ -1,11 +1,11 @@
-package ssh_allowed_signers_test
+package xssh_test
 
 import (
 	"slices"
 	"testing"
 	"time"
 
-	xssh "github.com/fionn/commit-signature-verifier/service/ssh_allowed_signers"
+	xssh "github.com/fionn/commit-signature-verifier/service/xssh"
 )
 
 func TestBadInput(t *testing.T) {

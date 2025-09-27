@@ -17,8 +17,7 @@ import (
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/google/go-github/v74/github"
 
-	xssh "github.com/fionn/commit-signature-verifier/service/ssh_allowed_signers"
-	"github.com/fionn/commit-signature-verifier/service/verifier"
+	"github.com/fionn/commit-signature-verifier/service/xssh"
 )
 
 var logger = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
@@ -88,7 +87,7 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) g
 
 	var verifierError error
 	for _, publicKey := range publicKeys {
-		verifierError = verifier.VerifySSHSignature(message, signature, publicKey)
+		verifierError = xssh.VerifySSHSignature(message, signature, publicKey)
 		if verifierError == nil {
 			break
 		}

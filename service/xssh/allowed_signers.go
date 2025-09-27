@@ -1,4 +1,4 @@
-package ssh_allowed_signers
+package xssh
 
 import (
 	"bytes"
