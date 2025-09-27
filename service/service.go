@@ -9,8 +9,6 @@ import (
 	"slices"
 	"strconv"
 
-	"golang.org/x/crypto/ssh"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
@@ -62,19 +60,16 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) g
 	signature := []byte(*commit.Verification.Signature)
 	message := []byte(*commit.Verification.Payload)
 
-	// TODO: take the allowedSigners object as a first class entity and
-	// pass that straight through to the validation instead.
-
 	// Shortcut: we should be checking glob matches but we're assuming the
 	// allowed signers have literal principals, not patterns.
-	var publicKeys []ssh.PublicKey
+	var allowedSigners []xssh.AllowedSigner
 	for _, signer := range s.allowedSigners {
 		if slices.Contains(signer.Principals, *commit.Committer.Email) {
-			publicKeys = append(publicKeys, signer.PublicKey)
+			allowedSigners = append(allowedSigners, signer)
 		}
 	}
 
-	if len(publicKeys) == 0 {
+	if len(allowedSigners) == 0 {
 		state = "error"
 		description = fmt.Sprintf("missing public key for committer %s",
 			*commit.Committer.Email)
@@ -83,11 +78,16 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) g
 		return github.RepoStatus{State: &state, Description: &description, Context: &context}
 	}
 
-	// TODO: check namespace and time window.
-
 	var verifierError error
-	for _, publicKey := range publicKeys {
-		verifierError = xssh.VerifySSHSignature(message, signature, publicKey)
+	for _, allowedSigner := range allowedSigners {
+		// There's an argument that the only timestamp we know is not forged is
+		// our own, since if a key has a valid-before option specified we have
+		// to assume it's not trustworthy afterwards, at which point an attacker
+		// with access to the assumed compromised key could sign a commit with a
+		// timestamp prior to valid-before, which would pass validation. We
+		// stick the the specification, however, and validate at commit time.
+		verifierError = xssh.VerifySignature(message, signature, allowedSigner,
+			"git", *commit.Committer.Date.GetTime())
 		if verifierError == nil {
 			break
 		}
