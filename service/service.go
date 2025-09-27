@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
 
 	"golang.org/x/crypto/ssh"
@@ -16,34 +17,21 @@ import (
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/google/go-github/v74/github"
 
+	"github.com/fionn/commit-signature-verifier/service/ssh_allowed_signers"
 	"github.com/fionn/commit-signature-verifier/service/verifier"
 )
 
 var logger = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-type emailAddress string
-
-type keyring map[emailAddress][]ssh.PublicKey
-
-type principal struct {
-	emailAddresses []emailAddress
-	publicKeys     []ssh.PublicKey
+type allowedSigner struct {
+	emailAddressPatterns []string // TODO: type.
+	publicKey            ssh.PublicKey
 }
 
 type Service struct {
-	github        *github.Client
-	webhookSecret []byte // TODO: type.
-	keyring       keyring
-}
-
-func newKeyring(principals []principal) keyring {
-	k := make(keyring)
-	for _, p := range principals {
-		for _, emailAddress := range p.emailAddresses {
-			k[emailAddress] = p.publicKeys
-		}
-	}
-	return k
+	github         *github.Client
+	webhookSecret  []byte // TODO: type.
+	allowedSigners []allowedSigner
 }
 
 func (s Service) pushEventStatus(ctx context.Context, event *github.PushEvent) github.RepoStatus {
@@ -76,7 +64,18 @@ func (s Service) pushEventStatus(ctx context.Context, event *github.PushEvent) g
 
 	signature := []byte(*commit.Commit.Verification.Signature)
 	message := []byte(*commit.Commit.Verification.Payload)
-	publicKeys := s.keyring[emailAddress(*commit.Commit.Committer.Email)]
+
+	// TODO: take a (hypothetical) allowed signers object as a first class
+	// entity and pass that straight through to the validation instead.
+
+	// Shortcut: we should be checking glob matches but we're assuming the
+	// allowed signers have literal principals, not patterns.
+	var publicKeys []ssh.PublicKey
+	for _, signer := range s.allowedSigners {
+		if slices.Contains(signer.emailAddressPatterns, *commit.Commit.Committer.Email) {
+			publicKeys = append(publicKeys, signer.publicKey)
+		}
+	}
 
 	if len(publicKeys) == 0 {
 		state = "error"
@@ -86,6 +85,8 @@ func (s Service) pushEventStatus(ctx context.Context, event *github.PushEvent) g
 			slog.String("committer", *commit.Commit.Committer.Email))
 		return github.RepoStatus{State: &state, Description: &description, Context: &context}
 	}
+
+	// TODO: check namespace and time window.
 
 	var verifierError error
 	for _, publicKey := range publicKeys {
@@ -189,13 +190,14 @@ func newGitHubClient() (*github.Client, []byte, error) {
 }
 
 // URGH.
-func populateKeyring() (keyring, error) {
-	publicKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILbkp0LwqqV/w6wAGV9bwiR6FpHC/5DtiBAKFLZxvaSp fionn@lotus"))
+func populateAllowedSigners() ([]allowedSigner, error) {
+	allowedSignerBytes := []byte(`git@fionn.computer namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILbkp0LwqqV/w6wAGV9bwiR6FpHC/5DtiBAKFLZxvaSp fionn@lotus`)
+	principals, _, publicKey, _, _, err := ssh_allowed_signers.ParseAllowedSigner(allowedSignerBytes)
 	if err != nil {
 		return nil, err
 	}
-	p := principal{emailAddresses: []emailAddress{"git@fionn.computer"}, publicKeys: []ssh.PublicKey{publicKey}}
-	return newKeyring([]principal{p}), nil
+	p := allowedSigner{emailAddressPatterns: principals, publicKey: publicKey}
+	return []allowedSigner{p}, nil
 }
 
 func Run() {
@@ -204,12 +206,12 @@ func Run() {
 		panic(err)
 	}
 
-	keyring, err := populateKeyring()
+	allowedSigners, err := populateAllowedSigners()
 	if err != nil {
 		panic(err)
 	}
 
-	service := Service{github: client, webhookSecret: webhookSecret, keyring: keyring}
+	service := Service{github: client, webhookSecret: webhookSecret, allowedSigners: allowedSigners}
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)

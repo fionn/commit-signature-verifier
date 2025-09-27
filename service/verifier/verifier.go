@@ -33,6 +33,6 @@ func VerifySSHSignature(message []byte, signatureBytes []byte, publicKey ssh.Pub
 		signature,
 		publicKey,
 		signature.HashAlgorithm,
-		signature.Namespace,
+		"git",
 	)
 }
