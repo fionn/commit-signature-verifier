@@ -117,6 +117,28 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (
 	return VerifyCommit(commit, s.allowedSigners), nil
 }
 
+func (s Service) handlePushEvent(ctx context.Context, event *github.PushEvent) error {
+	status, err := s.statusFromEvent(ctx, event)
+	if err != nil {
+		return fmt.Errorf("failed to create commit status: %w", err)
+	}
+	if status == nil {
+		logger.Debug("No status created for event")
+		return nil
+	}
+	_, _, err = s.github.Repositories.CreateStatus(
+		ctx,
+		*event.Repo.Owner.Name,
+		*event.Repo.Name,
+		*event.After,
+		status,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to post commit status: %w", err)
+	}
+	return nil
+}
+
 func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	payload, err := github.ValidatePayload(r, s.webhookSecret.Reveal())
 	if err != nil {
@@ -138,26 +160,9 @@ func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {
 			slog.String("repository", *event.Repo.FullName),
 			slog.String("ref", *event.Ref),
 			slog.String("commit", *event.After))
-
 		ctx := context.Background()
-		status, err := s.statusFromEvent(ctx, event)
-		if err != nil {
-			logger.Error("Failed to create commit status", slog.String("error", err.Error()))
-			return
-		}
-		if status == nil {
-			logger.Info("No status created for event")
-			return
-		}
-		_, _, err = s.github.Repositories.CreateStatus(
-			ctx,
-			*event.Repo.Owner.Name,
-			*event.Repo.Name,
-			*event.After,
-			status,
-		)
-		if err != nil {
-			logger.Error("Failed to post commit status", slog.String("error", err.Error()))
+		if err := s.handlePushEvent(ctx, event); err != nil {
+			logger.Error("Failed to handle push event", slog.String("error", err.Error()))
 		}
 	default:
 		logger.Warn("Received webhook for unexpected event", "event", event)
