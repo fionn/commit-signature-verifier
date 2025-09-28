@@ -37,7 +37,7 @@ type Service struct {
 	allowedSigners []xssh.AllowedSigner
 }
 
-func verifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) github.RepoStatus {
+func VerifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) github.RepoStatus {
 	var state string
 	var description string
 	context := "commit-signature"
@@ -100,7 +100,7 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) g
 	commit := repositoryCommit.Commit
 	commit.SHA = repositoryCommit.SHA
 
-	return verifyCommit(commit, s.allowedSigners)
+	return VerifyCommit(commit, s.allowedSigners)
 }
 
 func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {
