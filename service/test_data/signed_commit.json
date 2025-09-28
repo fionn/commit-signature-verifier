@@ -1,0 +1,125 @@
+{
+    "sha": "a15506a106fd7165f042c24560bf550ad75b0943",
+    "node_id": "C_kwDOPvmYZdoAKGExNTUwNmExMDZmZDcxNjVmMDQyYzI0NTYwYmY1NTBhZDc1YjA5NDM",
+    "commit": {
+        "author": {
+            "name": "Fionn Fitzmaurice",
+            "email": "git@fionn.computer",
+            "date": "2025-09-28T12:21:04Z"
+        },
+        "committer": {
+            "name": "Fionn Fitzmaurice",
+            "email": "git@fionn.computer",
+            "date": "2025-09-28T12:21:04Z"
+        },
+        "message": "Add basic service test",
+        "tree": {
+            "sha": "e0d3a831d813079a24acc82443198a905cccc783",
+            "url": "https://api.github.com/repos/fionn/commit-signature-verifier/git/trees/e0d3a831d813079a24acc82443198a905cccc783"
+        },
+        "url": "https://api.github.com/repos/fionn/commit-signature-verifier/git/commits/a15506a106fd7165f042c24560bf550ad75b0943",
+        "comment_count": 0,
+        "verification": {
+            "verified": true,
+            "reason": "valid",
+            "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgtuSnQvCqpX/DrAAZX1vCJHoWkc\nL/kO2IEAoUtnG9pKkAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5\nAAAAQEPpnfx1NJOL62OEcwnxNEojmhfJoUsDVeLLDIctk9QEDR9/CwfhxDupKG3aZzkcYa\ntq89PpzdABHYLNP+HNKAg=\n-----END SSH SIGNATURE-----",
+            "payload": "tree e0d3a831d813079a24acc82443198a905cccc783\nparent 25a448b005497560fcbc497429f204ef1fd8bd75\nauthor Fionn Fitzmaurice <git@fionn.computer> 1759062064 +0800\ncommitter Fionn Fitzmaurice <git@fionn.computer> 1759062064 +0800\n\nAdd basic service test\n",
+            "verified_at": "2025-09-28T12:22:35Z"
+        }
+    },
+    "url": "https://api.github.com/repos/fionn/commit-signature-verifier/commits/a15506a106fd7165f042c24560bf550ad75b0943",
+    "html_url": "https://github.com/fionn/commit-signature-verifier/commit/a15506a106fd7165f042c24560bf550ad75b0943",
+    "comments_url": "https://api.github.com/repos/fionn/commit-signature-verifier/commits/a15506a106fd7165f042c24560bf550ad75b0943/comments",
+    "author": {
+        "login": "fionn",
+        "id": 1897918,
+        "node_id": "MDQ6VXNlcjE4OTc5MTg=",
+        "avatar_url": "https://avatars.githubusercontent.com/u/1897918?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/fionn",
+        "html_url": "https://github.com/fionn",
+        "followers_url": "https://api.github.com/users/fionn/followers",
+        "following_url": "https://api.github.com/users/fionn/following{/other_user}",
+        "gists_url": "https://api.github.com/users/fionn/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/fionn/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/fionn/subscriptions",
+        "organizations_url": "https://api.github.com/users/fionn/orgs",
+        "repos_url": "https://api.github.com/users/fionn/repos",
+        "events_url": "https://api.github.com/users/fionn/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/fionn/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+    },
+    "committer": {
+        "login": "fionn",
+        "id": 1897918,
+        "node_id": "MDQ6VXNlcjE4OTc5MTg=",
+        "avatar_url": "https://avatars.githubusercontent.com/u/1897918?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/fionn",
+        "html_url": "https://github.com/fionn",
+        "followers_url": "https://api.github.com/users/fionn/followers",
+        "following_url": "https://api.github.com/users/fionn/following{/other_user}",
+        "gists_url": "https://api.github.com/users/fionn/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/fionn/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/fionn/subscriptions",
+        "organizations_url": "https://api.github.com/users/fionn/orgs",
+        "repos_url": "https://api.github.com/users/fionn/repos",
+        "events_url": "https://api.github.com/users/fionn/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/fionn/received_events",
+        "type": "User",
+        "user_view_type": "public",
+        "site_admin": false
+    },
+    "parents": [
+        {
+            "sha": "25a448b005497560fcbc497429f204ef1fd8bd75",
+            "url": "https://api.github.com/repos/fionn/commit-signature-verifier/commits/25a448b005497560fcbc497429f204ef1fd8bd75",
+            "html_url": "https://github.com/fionn/commit-signature-verifier/commit/25a448b005497560fcbc497429f204ef1fd8bd75"
+        }
+    ],
+    "stats": {
+        "total": 149,
+        "additions": 147,
+        "deletions": 2
+    },
+    "files": [
+        {
+            "sha": "5e8d4e5b734666a09fe7feadeed741214ca20f36",
+            "filename": "service/service.go",
+            "status": "modified",
+            "additions": 2,
+            "deletions": 2,
+            "changes": 4,
+            "blob_url": "https://github.com/fionn/commit-signature-verifier/blob/a15506a106fd7165f042c24560bf550ad75b0943/service%2Fservice.go",
+            "raw_url": "https://github.com/fionn/commit-signature-verifier/raw/a15506a106fd7165f042c24560bf550ad75b0943/service%2Fservice.go",
+            "contents_url": "https://api.github.com/repos/fionn/commit-signature-verifier/contents/service%2Fservice.go?ref=a15506a106fd7165f042c24560bf550ad75b0943",
+            "patch": "@@ -37,7 +37,7 @@ type Service struct {\n \tallowedSigners []xssh.AllowedSigner\n }\n \n-func verifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) github.RepoStatus {\n+func VerifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) github.RepoStatus {\n \tvar state string\n \tvar description string\n \tcontext := \"commit-signature\"\n@@ -100,7 +100,7 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) g\n \tcommit := repositoryCommit.Commit\n \tcommit.SHA = repositoryCommit.SHA\n \n-\treturn verifyCommit(commit, s.allowedSigners)\n+\treturn VerifyCommit(commit, s.allowedSigners)\n }\n \n func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {"
+        },
+        {
+            "sha": "a452bacdea7e835bf5a4c73cc208e2ac51c7c24a",
+            "filename": "service/service_test.go",
+            "status": "added",
+            "additions": 49,
+            "deletions": 0,
+            "changes": 49,
+            "blob_url": "https://github.com/fionn/commit-signature-verifier/blob/a15506a106fd7165f042c24560bf550ad75b0943/service%2Fservice_test.go",
+            "raw_url": "https://github.com/fionn/commit-signature-verifier/raw/a15506a106fd7165f042c24560bf550ad75b0943/service%2Fservice_test.go",
+            "contents_url": "https://api.github.com/repos/fionn/commit-signature-verifier/contents/service%2Fservice_test.go?ref=a15506a106fd7165f042c24560bf550ad75b0943",
+            "patch": "@@ -0,0 +1,49 @@\n+package service_test\n+\n+import (\n+\t\"encoding/json\"\n+\t\"fmt\"\n+\t\"os\"\n+\t\"testing\"\n+\n+\t\"github.com/google/go-github/v74/github\"\n+\n+\t\"github.com/fionn/commit-signature-verifier/service\"\n+\t\"github.com/fionn/commit-signature-verifier/service/xssh\"\n+)\n+\n+func populateAllowedSigners() ([]xssh.AllowedSigner, error) {\n+\tallowedSignerBytes := []byte(`git@fionn.computer namespaces=\"git\" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILbkp0LwqqV/w6wAGV9bwiR6FpHC/5DtiBAKFLZxvaSp fionn@lotus`)\n+\tallowedSigner, err := xssh.ParseAllowedSigner(allowedSignerBytes)\n+\tif err != nil {\n+\t\treturn nil, fmt.Errorf(\"failed to parse allowed signer: %w\", err)\n+\t}\n+\treturn []xssh.AllowedSigner{*allowedSigner}, nil\n+}\n+\n+func exampleCommit() (*github.Commit, error) {\n+\trepositoryCommit := new(github.RepositoryCommit)\n+\tcommitJson, err := os.ReadFile(\"test_data/octocat_commit.json\")\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\terr = json.Unmarshal(commitJson, &repositoryCommit)\n+\tcommit := repositoryCommit.Commit\n+\tcommit.SHA = repositoryCommit.SHA\n+\treturn commit, err\n+}\n+\n+func TestVerifyExampleUnsignedCommit(t *testing.T) {\n+\tcommit, err := exampleCommit()\n+\tif err != nil {\n+\t\tt.Fatalf(\"Could not unmarshal example commit\")\n+\t}\n+\tallowedSigners, err := populateAllowedSigners()\n+\tif err != nil {\n+\t\tt.Fatalf(\"Could not load allowed signers: %s\", err)\n+\t}\n+\tstatus := service.VerifyCommit(commit, allowedSigners)\n+\tif *status.State != \"failure\" {\n+\t\tt.Errorf(\"Expected verification to fail on commit unverified by GitHub\")\n+\t}\n+}"
+        },
+        {
+            "sha": "a7d1ce30d23bd6e3a02d7c9b020ae53b759391a6",
+            "filename": "service/test_data/octocat_commit.json",
+            "status": "added",
+            "additions": 96,
+            "deletions": 0,
+            "changes": 96,
+            "blob_url": "https://github.com/fionn/commit-signature-verifier/blob/a15506a106fd7165f042c24560bf550ad75b0943/service%2Ftest_data%2Foctocat_commit.json",
+            "raw_url": "https://github.com/fionn/commit-signature-verifier/raw/a15506a106fd7165f042c24560bf550ad75b0943/service%2Ftest_data%2Foctocat_commit.json",
+            "contents_url": "https://api.github.com/repos/fionn/commit-signature-verifier/contents/service%2Ftest_data%2Foctocat_commit.json?ref=a15506a106fd7165f042c24560bf550ad75b0943",
+            "patch": "@@ -0,0 +1,96 @@\n+{\n+  \"url\": \"https://api.github.com/repos/octocat/Hello-World/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e\",\n+  \"sha\": \"6dcb09b5b57875f334f61aebed695e2e4193db5e\",\n+  \"node_id\": \"MDY6Q29tbWl0NmRjYjA5YjViNTc4NzVmMzM0ZjYxYWViZWQ2OTVlMmU0MTkzZGI1ZQ==\",\n+  \"html_url\": \"https://github.com/octocat/Hello-World/commit/6dcb09b5b57875f334f61aebed695e2e4193db5e\",\n+  \"comments_url\": \"https://api.github.com/repos/octocat/Hello-World/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e/comments\",\n+  \"commit\": {\n+    \"url\": \"https://api.github.com/repos/octocat/Hello-World/git/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e\",\n+    \"author\": {\n+      \"name\": \"Monalisa Octocat\",\n+      \"email\": \"mona@github.com\",\n+      \"date\": \"2011-04-14T16:00:49Z\"\n+    },\n+    \"committer\": {\n+      \"name\": \"Monalisa Octocat\",\n+      \"email\": \"mona@github.com\",\n+      \"date\": \"2011-04-14T16:00:49Z\"\n+    },\n+    \"message\": \"Fix all the bugs\",\n+    \"tree\": {\n+      \"url\": \"https://api.github.com/repos/octocat/Hello-World/tree/6dcb09b5b57875f334f61aebed695e2e4193db5e\",\n+      \"sha\": \"6dcb09b5b57875f334f61aebed695e2e4193db5e\"\n+    },\n+    \"comment_count\": 0,\n+    \"verification\": {\n+      \"verified\": false,\n+      \"reason\": \"unsigned\",\n+      \"signature\": null,\n+      \"payload\": null,\n+      \"verified_at\": null\n+    }\n+  },\n+  \"author\": {\n+    \"login\": \"octocat\",\n+    \"id\": 1,\n+    \"node_id\": \"MDQ6VXNlcjE=\",\n+    \"avatar_url\": \"https://github.com/images/error/octocat_happy.gif\",\n+    \"gravatar_id\": \"\",\n+    \"url\": \"https://api.github.com/users/octocat\",\n+    \"html_url\": \"https://github.com/octocat\",\n+    \"followers_url\": \"https://api.github.com/users/octocat/followers\",\n+    \"following_url\": \"https://api.github.com/users/octocat/following{/other_user}\",\n+    \"gists_url\": \"https://api.github.com/users/octocat/gists{/gist_id}\",\n+    \"starred_url\": \"https://api.github.com/users/octocat/starred{/owner}{/repo}\",\n+    \"subscriptions_url\": \"https://api.github.com/users/octocat/subscriptions\",\n+    \"organizations_url\": \"https://api.github.com/users/octocat/orgs\",\n+    \"repos_url\": \"https://api.github.com/users/octocat/repos\",\n+    \"events_url\": \"https://api.github.com/users/octocat/events{/privacy}\",\n+    \"received_events_url\": \"https://api.github.com/users/octocat/received_events\",\n+    \"type\": \"User\",\n+    \"site_admin\": false\n+  },\n+  \"committer\": {\n+    \"login\": \"octocat\",\n+    \"id\": 1,\n+    \"node_id\": \"MDQ6VXNlcjE=\",\n+    \"avatar_url\": \"https://github.com/images/error/octocat_happy.gif\",\n+    \"gravatar_id\": \"\",\n+    \"url\": \"https://api.github.com/users/octocat\",\n+    \"html_url\": \"https://github.com/octocat\",\n+    \"followers_url\": \"https://api.github.com/users/octocat/followers\",\n+    \"following_url\": \"https://api.github.com/users/octocat/following{/other_user}\",\n+    \"gists_url\": \"https://api.github.com/users/octocat/gists{/gist_id}\",\n+    \"starred_url\": \"https://api.github.com/users/octocat/starred{/owner}{/repo}\",\n+    \"subscriptions_url\": \"https://api.github.com/users/octocat/subscriptions\",\n+    \"organizations_url\": \"https://api.github.com/users/octocat/orgs\",\n+    \"repos_url\": \"https://api.github.com/users/octocat/repos\",\n+    \"events_url\": \"https://api.github.com/users/octocat/events{/privacy}\",\n+    \"received_events_url\": \"https://api.github.com/users/octocat/received_events\",\n+    \"type\": \"User\",\n+    \"site_admin\": false\n+  },\n+  \"parents\": [\n+    {\n+      \"url\": \"https://api.github.com/repos/octocat/Hello-World/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e\",\n+      \"sha\": \"6dcb09b5b57875f334f61aebed695e2e4193db5e\"\n+    }\n+  ],\n+  \"stats\": {\n+    \"additions\": 104,\n+    \"deletions\": 4,\n+    \"total\": 108\n+  },\n+  \"files\": [\n+    {\n+      \"filename\": \"file1.txt\",\n+      \"additions\": 10,\n+      \"deletions\": 2,\n+      \"changes\": 12,\n+      \"status\": \"modified\",\n+      \"raw_url\": \"https://github.com/octocat/Hello-World/raw/7ca483543807a51b6079e54ac4cc392bc29ae284/file1.txt\",\n+      \"blob_url\": \"https://github.com/octocat/Hello-World/blob/7ca483543807a51b6079e54ac4cc392bc29ae284/file1.txt\",\n+      \"patch\": \"@@ -29,7 +29,7 @@\\n.....\"\n+    }\n+  ]\n+}"
+        }
+    ]
+}

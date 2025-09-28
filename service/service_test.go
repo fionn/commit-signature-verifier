@@ -21,12 +21,13 @@ func populateAllowedSigners() ([]xssh.AllowedSigner, error) {
 	return []xssh.AllowedSigner{*allowedSigner}, nil
 }
 
-func exampleCommit() (*github.Commit, error) {
+func loadCommit(path string) (*github.Commit, error) {
 	repositoryCommit := new(github.RepositoryCommit)
-	commitJson, err := os.ReadFile("test_data/octocat_commit.json")
+	commitJson, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
+
 	err = json.Unmarshal(commitJson, &repositoryCommit)
 	commit := repositoryCommit.Commit
 	commit.SHA = repositoryCommit.SHA
@@ -34,7 +35,7 @@ func exampleCommit() (*github.Commit, error) {
 }
 
 func TestVerifyExampleUnsignedCommit(t *testing.T) {
-	commit, err := exampleCommit()
+	commit, err := loadCommit("test_data/octocat_commit.json")
 	if err != nil {
 		t.Fatalf("Could not unmarshal example commit")
 	}
@@ -45,5 +46,20 @@ func TestVerifyExampleUnsignedCommit(t *testing.T) {
 	status := service.VerifyCommit(commit, allowedSigners)
 	if *status.State != "failure" {
 		t.Errorf("Expected verification to fail on commit unverified by GitHub")
+	}
+}
+
+func TestVerifySignedCommit(t *testing.T) {
+	commit, err := loadCommit("test_data/signed_commit.json")
+	if err != nil {
+		t.Fatalf("Could not unmarshal example commit")
+	}
+	allowedSigners, err := populateAllowedSigners()
+	if err != nil {
+		t.Fatalf("Could not load allowed signers: %s", err)
+	}
+	status := service.VerifyCommit(commit, allowedSigners)
+	if *status.State != "success" {
+		t.Errorf("Expected verification to succeed on commit with good signature")
 	}
 }
