@@ -87,6 +87,12 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (
 		return github.RepoStatus{}, fmt.Errorf("skipping tag")
 	}
 
+	// Push events can include things like branch deletion, which aren't
+	// relevant for us.
+	if *event.After == strings.Repeat("0", 40) {
+		return github.RepoStatus{}, fmt.Errorf("skipping deletion event")
+	}
+
 	repositoryCommit, _, err := s.github.Repositories.GetCommit(
 		ctx,
 		*event.Repo.Owner.Name,
