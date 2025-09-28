@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"log/slog"
@@ -186,14 +187,37 @@ func newGitHubClient() (*github.Client, Secret, error) {
 	return github.NewClient(&http.Client{Transport: itr}), webhookSecret, nil
 }
 
-// URGH.
-func populateAllowedSigners() ([]xssh.AllowedSigner, error) {
-	allowedSignerBytes := []byte(`git@fionn.computer namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILbkp0LwqqV/w6wAGV9bwiR6FpHC/5DtiBAKFLZxvaSp fionn@lotus`)
-	allowedSigner, err := xssh.ParseAllowedSigner(allowedSignerBytes)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse allowed signer: %w", err)
+func populateAllowedSigners() (allowedSigners []xssh.AllowedSigner, err error) {
+	allowedSignersPath, ok := os.LookupEnv("SSH_ALLOWED_SIGNERS")
+	if !ok {
+		homedir, err := os.UserHomeDir()
+		if err != nil {
+			return nil, fmt.Errorf("could not construct fallback path: %w", err)
+		}
+		allowedSignersPath = homedir + "/.ssh/allowed_signers"
 	}
-	return []xssh.AllowedSigner{*allowedSigner}, nil
+
+	logger.Info("Loading allowed signers from file", slog.String("path", allowedSignersPath))
+	f, err := os.Open(allowedSignersPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open allowed signers file %s: %w", allowedSignersPath, err)
+	}
+	defer func() {
+		if err := f.Close(); err != nil {
+			panic(err)
+		}
+	}()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		allowedSigner, err := xssh.ParseAllowedSigner(scanner.Bytes())
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse allowed signer: %w", err)
+		}
+		logger.Debug("Loaded allowed signer", slog.Any("principals", allowedSigner.Principals))
+		allowedSigners = append(allowedSigners, *allowedSigner)
+	}
+	return allowedSigners, nil
 }
 
 func Run() error {
