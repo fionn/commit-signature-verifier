@@ -39,7 +39,7 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) g
 	)
 	if err != nil {
 		state = "error"
-		description = fmt.Sprintf("Failed to get commit %s", *event.After)
+		description = fmt.Sprintf("Failed to get commit %s.", *event.After)
 		logger.Error("Failed to get commit",
 			slog.String("commit", *event.After), slog.String("error", err.Error()))
 		return github.RepoStatus{State: &state, Description: &description, Context: &context}
@@ -50,7 +50,7 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) g
 
 	if !*commit.Verification.Verified {
 		state = "failure"
-		description = *commit.Verification.Reason
+		description = fmt.Sprintf("Commit %s is %s.", *commit.SHA, *commit.Verification.Reason)
 		logger.Debug("Commit unverified on GitHub",
 			slog.String("commit", *commit.SHA), slog.String("reason", description))
 		return github.RepoStatus{State: &state, Description: &description, Context: &context}
@@ -74,14 +74,14 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) g
 	err = xssh.Verify(message, signature, signerIdentity, s.allowedSigners, "git", timestamp)
 	if err != nil {
 		state = "failure"
-		description = err.Error()
+		description = fmt.Sprintf("Commit %s has bad signature: %s.", *commit.SHA, err.Error())
 		logger.Info("Commit has bad signature",
-			slog.String("commit", *commit.SHA), slog.String("error", description))
+			slog.String("commit", *commit.SHA), slog.String("error", err.Error()))
 		return github.RepoStatus{State: &state, Description: &description, Context: &context}
 	}
 
 	state = "success"
-	description = fmt.Sprintf("Commit %s has good signature", (*commit.SHA)[:7])
+	description = fmt.Sprintf("Commit %s has good signature.", (*commit.SHA)[:7])
 	logger.Debug(description, slog.String("commit", *commit.SHA))
 	return github.RepoStatus{State: &state, Description: &description, Context: &context}
 }
@@ -96,13 +96,18 @@ func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {
 
 	event, err := github.ParseWebHook(github.WebHookType(r), payload)
 	if err != nil {
-		logger.Info("Failed to parse payload", slog.String("error", err.Error()))
+		logger.Error("Failed to parse payload", slog.String("error", err.Error()))
 		http.Error(w, "Failed to parse payload", http.StatusBadRequest)
 		return
 	}
 
 	switch event := event.(type) {
 	case *github.PushEvent:
+		logger.Info("Received push event",
+			slog.String("repository", *event.Repo.FullName),
+			slog.String("ref", *event.Ref),
+			slog.String("commit", *event.After))
+
 		ctx := context.Background()
 		status := s.statusFromEvent(ctx, event)
 		_, _, err := s.github.Repositories.CreateStatus(
@@ -113,7 +118,7 @@ func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {
 			&status,
 		)
 		if err != nil {
-			panic(err)
+			logger.Error("Failed to post commit status", slog.String("error", err.Error()))
 		}
 	default:
 		logger.Warn("Received webhook for unexpected event", "event", event)
@@ -128,7 +133,6 @@ func newGitHubClient() (*github.Client, []byte, error) {
 
 	installationID, err := strconv.ParseInt(installationIDStr, 10, 64)
 	if err != nil {
-		logger.Error("Bad INSTALLATION_ID", slog.String("error", err.Error()))
 		return nil, nil, fmt.Errorf("bad INSTALLATION_ID %s: %w", installationIDStr, err)
 	}
 
@@ -139,7 +143,6 @@ func newGitHubClient() (*github.Client, []byte, error) {
 
 	appID, err := strconv.ParseInt(appIDStr, 10, 64)
 	if err != nil {
-		logger.Error("Bad APP_ID", slog.String("error", err.Error()))
 		return nil, nil, fmt.Errorf("bad APP ID %s: %w", appIDStr, err)
 	}
 

@@ -29,6 +29,11 @@ func Verify(message []byte, signature []byte, identity string, allowedSigners []
 	namespace string, timestamp time.Time) (err error) {
 	// Shortcut: we should be checking glob matches but we're assuming the
 	// allowed signers have literal principals, not patterns.
+	//
+	// We have to check this now, since the underlying verification function
+	// doesn't have a concept of principals or an identity, so we are
+	// responsible for finding public keys that are appropriate to check
+	// against.
 	var filteredAllowedSigners []AllowedSigner
 	for _, allowedSigner := range allowedSigners {
 		if slices.Contains(allowedSigner.Principals, identity) {
@@ -37,14 +42,25 @@ func Verify(message []byte, signature []byte, identity string, allowedSigners []
 	}
 
 	if len(filteredAllowedSigners) == 0 {
-		logger.Info("Missing public key", slog.String("identity", identity))
+		logger.Debug("Missing public key", slog.String("identity", identity))
 		return fmt.Errorf("missing public key for identity %s", identity)
 	}
 
 	for _, allowedSigner := range filteredAllowedSigners {
+		logger.Debug("Checking signature",
+			slog.String("identity", identity),
+			slog.Any("principals", allowedSigner.Principals))
 		err = VerifySignature(message, signature, allowedSigner, namespace, timestamp)
 		if err == nil {
+			// We got a good signature, no need to check any other allowed
+			// signers.
 			break
+		} else {
+			// We got a bad signature, so keep checking in case another allowed
+			// signer entry for this identity will match.
+			logger.Debug("Got bad signature",
+				slog.String("identity", identity),
+				slog.Any("principals", allowedSigner.Principals))
 		}
 	}
 
@@ -55,7 +71,7 @@ func VerifySignature(message []byte, signatureBytes []byte, allowedSigner Allowe
 	namespace string, timestamp time.Time) error {
 	signature, err := sshsig.Unarmor(signatureBytes)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to parse SSH signature: %s", err.Error())
 	}
 
 	logger.Debug(
@@ -69,18 +85,22 @@ func VerifySignature(message []byte, signatureBytes []byte, allowedSigner Allowe
 		slog.String("message", string(message)),
 		slog.String("public_key", strings.TrimSpace(string(ssh.MarshalAuthorizedKey(allowedSigner.PublicKey)))))
 
+	// The signature verification below only checks if the signature is over a
+	// given namespace, but doesn't know if the allowed signer has excluded this
+	// namespace, so we have to check this here. We don't check if the signature
+	// namespace matches the given namespace as that check is done for us by the
+	// verification.
 	if len(allowedSigner.Options.Namespaces) > 0 &&
 		!slices.Contains(allowedSigner.Options.Namespaces, signature.Namespace) {
-		return fmt.Errorf("signature over \"%s\" but only alowed over %s",
-			signature.Namespace, allowedSigner.Options.Namespaces)
+		return fmt.Errorf("signature over %s namespace is not permitted", signature.Namespace)
 	}
 
 	if timestamp.Compare(allowedSigner.Options.ValidAfter) == -1 {
-		return fmt.Errorf("signature is not yet valid")
+		return fmt.Errorf("signature at time %s is not yet valid", timestamp)
 	}
 	if !allowedSigner.Options.ValidBefore.IsZero() &&
 		timestamp.Compare(allowedSigner.Options.ValidBefore) == 1 {
-		return fmt.Errorf("signature is no longer valid")
+		return fmt.Errorf("signature at time %s is no longer valid", timestamp)
 	}
 
 	return sshsig.Verify(
