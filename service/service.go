@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -81,7 +82,11 @@ func VerifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) gi
 	return github.RepoStatus{State: &state, Description: &description, Context: &context}
 }
 
-func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) github.RepoStatus {
+func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (github.RepoStatus, error) {
+	if strings.HasPrefix(*event.Ref, "refs/tags/") {
+		return github.RepoStatus{}, fmt.Errorf("skipping tag")
+	}
+
 	repositoryCommit, _, err := s.github.Repositories.GetCommit(
 		ctx,
 		*event.Repo.Owner.Name,
@@ -95,13 +100,13 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) g
 		context := "commit-signature"
 		logger.Error("Failed to get commit",
 			slog.String("commit", *event.After), slog.String("error", err.Error()))
-		return github.RepoStatus{State: &state, Description: &description, Context: &context}
+		return github.RepoStatus{State: &state, Description: &description, Context: &context}, nil
 	}
 
 	commit := repositoryCommit.Commit
 	commit.SHA = repositoryCommit.SHA
 
-	return VerifyCommit(commit, s.allowedSigners)
+	return VerifyCommit(commit, s.allowedSigners), nil
 }
 
 func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {
@@ -127,8 +132,12 @@ func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {
 			slog.String("commit", *event.After))
 
 		ctx := context.Background()
-		status := s.statusFromEvent(ctx, event)
-		_, _, err := s.github.Repositories.CreateStatus(
+		status, err := s.statusFromEvent(ctx, event)
+		if err != nil {
+			logger.Error("Failed to create commit status", slog.String("error", err.Error()))
+			return
+		}
+		_, _, err = s.github.Repositories.CreateStatus(
 			ctx,
 			*event.Repo.Owner.Name,
 			*event.Repo.Name,
