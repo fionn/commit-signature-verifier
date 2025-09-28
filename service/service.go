@@ -163,9 +163,11 @@ func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		ctx := context.Background()
 		if err := s.handlePushEvent(ctx, event); err != nil {
 			logger.Error("Failed to handle push event", slog.String("error", err.Error()))
+			http.Error(w, "Failed to handle push event", http.StatusInternalServerError)
 		}
 	default:
 		logger.Warn("Received webhook for unexpected event", "event", event)
+		http.Error(w, "Received webhook for unexpected event", http.StatusBadRequest)
 	}
 }
 
