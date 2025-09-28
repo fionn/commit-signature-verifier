@@ -46,7 +46,7 @@ func verifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) gi
 		state = "failure"
 		description = fmt.Sprintf("Commit %s is %s.", *commit.SHA, *commit.Verification.Reason)
 		logger.Info("Commit unverified on GitHub",
-			slog.String("commit", *commit.SHA), slog.String("reason", description))
+			slog.String("commit", *commit.SHA), slog.String("error", description))
 		return github.RepoStatus{State: &state, Description: &description, Context: &context}
 	}
 
@@ -76,7 +76,7 @@ func verifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) gi
 
 	state = "success"
 	description = fmt.Sprintf("Commit %s has good signature.", (*commit.SHA)[:7])
-	logger.Info(description, slog.String("commit", *commit.SHA))
+	logger.Info("Commit has good signature", slog.String("commit", *commit.SHA))
 	return github.RepoStatus{State: &state, Description: &description, Context: &context}
 }
 
