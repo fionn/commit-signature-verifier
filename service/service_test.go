@@ -43,8 +43,8 @@ func TestVerifyExampleUnsignedCommit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Could not load allowed signers: %s", err)
 	}
-	status := service.VerifyCommit(commit, allowedSigners)
-	if *status.State != "failure" {
+	ok, _ := service.VerifyCommit(commit, allowedSigners)
+	if ok {
 		t.Errorf("Expected verification to fail on commit unverified by GitHub")
 	}
 }
@@ -58,8 +58,8 @@ func TestVerifySignedCommit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Could not load allowed signers: %s", err)
 	}
-	status := service.VerifyCommit(commit, allowedSigners)
-	if *status.State != "success" {
+	ok, _ := service.VerifyCommit(commit, allowedSigners)
+	if !ok {
 		t.Errorf("Expected verification to succeed on commit with good signature")
 	}
 }

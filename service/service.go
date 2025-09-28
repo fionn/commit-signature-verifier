@@ -40,17 +40,12 @@ type Service struct {
 	allowedSigners []xssh.AllowedSigner
 }
 
-func VerifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) *github.RepoStatus {
-	var state string
-	var description string
-	context := "commit-signature"
-
+func VerifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) (ok bool, description string) {
 	if !*commit.Verification.Verified {
-		state = "failure"
 		description = fmt.Sprintf("Commit %s is %s.", *commit.SHA, *commit.Verification.Reason)
 		logger.Info("Commit unverified on GitHub",
 			slog.String("commit", *commit.SHA), slog.String("error", description))
-		return &github.RepoStatus{State: &state, Description: &description, Context: &context}
+		return false, description
 	}
 
 	signature := []byte(*commit.Verification.Signature)
@@ -70,17 +65,15 @@ func VerifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) *g
 
 	err := xssh.Verify(message, signature, signerIdentity, allowedSigners, "git", timestamp)
 	if err != nil {
-		state = "failure"
 		description = fmt.Sprintf("Commit %s has bad signature: %s.", *commit.SHA, err.Error())
 		logger.Info("Commit has bad signature",
 			slog.String("commit", *commit.SHA), slog.String("error", err.Error()))
-		return &github.RepoStatus{State: &state, Description: &description, Context: &context}
+		return false, description
 	}
 
-	state = "success"
 	description = fmt.Sprintf("Commit %s has good signature.", (*commit.SHA)[:7])
 	logger.Info("Commit has good signature", slog.String("commit", *commit.SHA))
-	return &github.RepoStatus{State: &state, Description: &description, Context: &context}
+	return true, description
 }
 
 func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (*github.RepoStatus, error) {
@@ -96,6 +89,8 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (
 		return nil, nil
 	}
 
+	context := "commit-signature"
+
 	repositoryCommit, _, err := s.github.Repositories.GetCommit(
 		ctx,
 		*event.Repo.Owner.Name,
@@ -106,7 +101,6 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (
 	if err != nil {
 		state := "error"
 		description := fmt.Sprintf("Failed to get commit %s.", *event.After)
-		context := "commit-signature"
 		logger.Error("Failed to get commit",
 			slog.String("commit", *event.After), slog.String("error", err.Error()))
 		return &github.RepoStatus{State: &state, Description: &description, Context: &context}, nil
@@ -115,7 +109,12 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (
 	commit := repositoryCommit.Commit
 	commit.SHA = repositoryCommit.SHA
 
-	return VerifyCommit(commit, s.allowedSigners), nil
+	state := "failure"
+	ok, description := VerifyCommit(commit, s.allowedSigners)
+	if ok {
+		state = "success"
+	}
+	return &github.RepoStatus{State: &state, Description: &description, Context: &context}, nil
 }
 
 func (s Service) handlePushEvent(ctx context.Context, event *github.PushEvent) error {
