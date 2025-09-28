@@ -19,9 +19,21 @@ import (
 
 var logger = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
+type Secret struct {
+	secret []byte
+}
+
+func (secret Secret) String() string {
+	return "[redacted]"
+}
+
+func (secret Secret) Reveal() []byte {
+	return secret.secret
+}
+
 type Service struct {
 	github         *github.Client
-	webhookSecret  []byte // TODO: type.
+	webhookSecret  Secret
 	allowedSigners []xssh.AllowedSigner
 }
 
@@ -87,7 +99,7 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) g
 }
 
 func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {
-	payload, err := github.ValidatePayload(r, s.webhookSecret)
+	payload, err := github.ValidatePayload(r, s.webhookSecret.Reveal())
 	if err != nil {
 		logger.Info("Failed to validate payload", slog.String("error", err.Error()))
 		http.Error(w, "Failed to validate payload", http.StatusForbidden)
@@ -125,38 +137,39 @@ func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func newGitHubClient() (*github.Client, []byte, error) {
+func newGitHubClient() (*github.Client, Secret, error) {
+	var webhookSecret Secret
 	installationIDStr, ok := os.LookupEnv("INSTALLATION_ID")
 	if !ok {
-		return nil, nil, fmt.Errorf("missing INSTALLATION_ID")
+		return nil, webhookSecret, fmt.Errorf("missing INSTALLATION_ID")
 	}
 
 	installationID, err := strconv.ParseInt(installationIDStr, 10, 64)
 	if err != nil {
-		return nil, nil, fmt.Errorf("bad INSTALLATION_ID %s: %w", installationIDStr, err)
+		return nil, webhookSecret, fmt.Errorf("bad INSTALLATION_ID %s: %w", installationIDStr, err)
 	}
 
 	appIDStr, ok := os.LookupEnv("APP_ID")
 	if !ok {
-		return nil, nil, fmt.Errorf("missing APP_ID")
+		return nil, webhookSecret, fmt.Errorf("missing APP_ID")
 	}
 
 	appID, err := strconv.ParseInt(appIDStr, 10, 64)
 	if err != nil {
-		return nil, nil, fmt.Errorf("bad APP ID %s: %w", appIDStr, err)
+		return nil, webhookSecret, fmt.Errorf("bad APP ID %s: %w", appIDStr, err)
 	}
 
 	privateKeyStr, ok := os.LookupEnv("PRIVATE_KEY")
 	if !ok {
-		return nil, nil, fmt.Errorf("missing PRIVATE_KEY")
+		return nil, webhookSecret, fmt.Errorf("missing PRIVATE_KEY")
 	}
 
 	webhookSecretStr, ok := os.LookupEnv("WEBHOOK_SECRET")
 	if !ok {
-		return nil, nil, fmt.Errorf("missing WEBHOOK_SECRET")
+		return nil, webhookSecret, fmt.Errorf("missing WEBHOOK_SECRET")
 	}
 
-	webhookSecret := []byte(webhookSecretStr)
+	webhookSecret = Secret{[]byte(webhookSecretStr)}
 	privateKey := []byte(privateKeyStr)
 
 	tr := http.DefaultTransport
