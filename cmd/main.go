@@ -5,5 +5,8 @@ import (
 )
 
 func main() {
-	service.Run()
+	err := service.Run()
+	if err != nil {
+		panic(err)
+	}
 }

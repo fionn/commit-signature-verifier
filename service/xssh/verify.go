@@ -15,7 +15,18 @@ import (
 
 var logger = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-func Verify(message []byte, signature []byte, identity string, allowedSigners []AllowedSigner, namespace string, timestamp time.Time) error {
+// Given a message, a signature over it, a signer identity, an allowed signers
+// list, a namespace and a timestamp, find the allowed signers entries that
+// correspond to the signing identity and then, for each entry, verify the
+// signature until we get a successful verification or run out of entries.
+// Verification checks:
+//   - that the signature is correct,
+//   - that the signature namespace matches both the given namespace and also
+//     a namespace permitted by the allowed signers entry, if present,
+//   - that the given timestamp is within the validity window, if at least one
+//     of verify-before or verify-after are present.
+func Verify(message []byte, signature []byte, identity string, allowedSigners []AllowedSigner,
+	namespace string, timestamp time.Time) (err error) {
 	// Shortcut: we should be checking glob matches but we're assuming the
 	// allowed signers have literal principals, not patterns.
 	var filteredAllowedSigners []AllowedSigner
@@ -30,17 +41,18 @@ func Verify(message []byte, signature []byte, identity string, allowedSigners []
 		return fmt.Errorf("missing public key for identity %s", identity)
 	}
 
-	var err error
 	for _, allowedSigner := range filteredAllowedSigners {
 		err = VerifySignature(message, signature, allowedSigner, namespace, timestamp)
 		if err == nil {
 			break
 		}
 	}
+
 	return err
 }
 
-func VerifySignature(message []byte, signatureBytes []byte, allowedSigner AllowedSigner, namespace string, timestamp time.Time) error {
+func VerifySignature(message []byte, signatureBytes []byte, allowedSigner AllowedSigner,
+	namespace string, timestamp time.Time) error {
 	signature, err := sshsig.Unarmor(signatureBytes)
 	if err != nil {
 		return err

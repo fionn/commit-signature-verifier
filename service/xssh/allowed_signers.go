@@ -61,20 +61,14 @@ func parseOptions(options []string) (optionsStruct Options, err error) {
 				optionsStruct.Namespaces = strings.Split(v, ",")
 			case "valid-before":
 				optionsStruct.ValidBefore, err = parseTimestamp(v)
-				if err != nil {
-					return optionsStruct, err
-				}
 			case "valid-after":
 				optionsStruct.ValidAfter, err = parseTimestamp(v)
-				if err != nil {
-					return optionsStruct, err
-				}
 			default:
 				return optionsStruct, fmt.Errorf("received unknown option")
 			}
 		}
 	}
-	return optionsStruct, nil
+	return optionsStruct, err
 }
 
 func ParseAllowedSigner(in []byte) (allowedSigner *AllowedSigner, err error) {
@@ -85,7 +79,7 @@ func ParseAllowedSigner(in []byte) (allowedSigner *AllowedSigner, err error) {
 
 	publicKey, comment, optionsStr, rest, err := ssh.ParseAuthorizedKey(authorizedKeyBytes)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse key: %w", err)
 	}
 
 	var principals []string

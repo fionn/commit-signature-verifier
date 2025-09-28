@@ -129,7 +129,7 @@ func newGitHubClient() (*github.Client, []byte, error) {
 	installationID, err := strconv.ParseInt(installationIDStr, 10, 64)
 	if err != nil {
 		logger.Error("Bad INSTALLATION_ID", slog.String("error", err.Error()))
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("bad INSTALLATION_ID %s: %w", installationIDStr, err)
 	}
 
 	appIDStr, ok := os.LookupEnv("APP_ID")
@@ -140,7 +140,7 @@ func newGitHubClient() (*github.Client, []byte, error) {
 	appID, err := strconv.ParseInt(appIDStr, 10, 64)
 	if err != nil {
 		logger.Error("Bad APP_ID", slog.String("error", err.Error()))
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("bad APP ID %s: %w", appIDStr, err)
 	}
 
 	privateKeyStr, ok := os.LookupEnv("PRIVATE_KEY")
@@ -159,7 +159,7 @@ func newGitHubClient() (*github.Client, []byte, error) {
 	tr := http.DefaultTransport
 	itr, err := ghinstallation.New(tr, appID, installationID, privateKey)
 	if err != nil {
-		return nil, webhookSecret, err
+		return nil, webhookSecret, fmt.Errorf("failed to build transport: %w", err)
 	}
 
 	return github.NewClient(&http.Client{Transport: itr}), webhookSecret, nil
@@ -170,20 +170,24 @@ func populateAllowedSigners() ([]xssh.AllowedSigner, error) {
 	allowedSignerBytes := []byte(`git@fionn.computer namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILbkp0LwqqV/w6wAGV9bwiR6FpHC/5DtiBAKFLZxvaSp fionn@lotus`)
 	allowedSigner, err := xssh.ParseAllowedSigner(allowedSignerBytes)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse allowed signer: %w", err)
 	}
 	return []xssh.AllowedSigner{*allowedSigner}, nil
 }
 
-func Run() {
+func Run() error {
 	client, webhookSecret, err := newGitHubClient()
 	if err != nil {
-		panic(err)
+		logger.Error("failed to create GitHub client",
+			slog.String("error", err.Error()))
+		return err
 	}
 
 	allowedSigners, err := populateAllowedSigners()
 	if err != nil {
-		panic(err)
+		logger.Error("failed to populate allowed signers",
+			slog.String("error", err.Error()))
+		return err
 	}
 
 	service := Service{github: client, webhookSecret: webhookSecret, allowedSigners: allowedSigners}
@@ -201,5 +205,8 @@ func Run() {
 	logger.Info("Listening", slog.String("address", address))
 	if err := http.ListenAndServe(address, r); err != nil && err != http.ErrServerClosed {
 		logger.Error("server failed", "address", address, "error", err)
+		return err
 	}
+
+	return nil
 }
