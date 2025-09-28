@@ -39,7 +39,7 @@ type Service struct {
 	allowedSigners []xssh.AllowedSigner
 }
 
-func VerifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) github.RepoStatus {
+func VerifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) *github.RepoStatus {
 	var state string
 	var description string
 	context := "commit-signature"
@@ -49,7 +49,7 @@ func VerifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) gi
 		description = fmt.Sprintf("Commit %s is %s.", *commit.SHA, *commit.Verification.Reason)
 		logger.Info("Commit unverified on GitHub",
 			slog.String("commit", *commit.SHA), slog.String("error", description))
-		return github.RepoStatus{State: &state, Description: &description, Context: &context}
+		return &github.RepoStatus{State: &state, Description: &description, Context: &context}
 	}
 
 	signature := []byte(*commit.Verification.Signature)
@@ -73,24 +73,26 @@ func VerifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) gi
 		description = fmt.Sprintf("Commit %s has bad signature: %s.", *commit.SHA, err.Error())
 		logger.Info("Commit has bad signature",
 			slog.String("commit", *commit.SHA), slog.String("error", err.Error()))
-		return github.RepoStatus{State: &state, Description: &description, Context: &context}
+		return &github.RepoStatus{State: &state, Description: &description, Context: &context}
 	}
 
 	state = "success"
 	description = fmt.Sprintf("Commit %s has good signature.", (*commit.SHA)[:7])
 	logger.Info("Commit has good signature", slog.String("commit", *commit.SHA))
-	return github.RepoStatus{State: &state, Description: &description, Context: &context}
+	return &github.RepoStatus{State: &state, Description: &description, Context: &context}
 }
 
-func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (github.RepoStatus, error) {
+func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (*github.RepoStatus, error) {
 	if strings.HasPrefix(*event.Ref, "refs/tags/") {
-		return github.RepoStatus{}, fmt.Errorf("skipping tag")
+		logger.Debug("received tag so skipping status", slog.String("tag", *event.Ref))
+		return nil, nil
 	}
 
 	// Push events can include things like branch deletion, which aren't
 	// relevant for us.
-	if *event.After == strings.Repeat("0", 40) {
-		return github.RepoStatus{}, fmt.Errorf("skipping deletion event")
+	if *event.After == strings.Repeat("0", 40) && *event.Deleted {
+		logger.Debug("received deletion event so skipping status", slog.String("ref", *event.Ref))
+		return nil, nil
 	}
 
 	repositoryCommit, _, err := s.github.Repositories.GetCommit(
@@ -106,7 +108,7 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (
 		context := "commit-signature"
 		logger.Error("Failed to get commit",
 			slog.String("commit", *event.After), slog.String("error", err.Error()))
-		return github.RepoStatus{State: &state, Description: &description, Context: &context}, nil
+		return &github.RepoStatus{State: &state, Description: &description, Context: &context}, nil
 	}
 
 	commit := repositoryCommit.Commit
@@ -143,12 +145,16 @@ func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {
 			logger.Error("Failed to create commit status", slog.String("error", err.Error()))
 			return
 		}
+		if status == nil {
+			logger.Info("No status created for event")
+			return
+		}
 		_, _, err = s.github.Repositories.CreateStatus(
 			ctx,
 			*event.Repo.Owner.Name,
 			*event.Repo.Name,
 			*event.After,
-			&status,
+			status,
 		)
 		if err != nil {
 			logger.Error("Failed to post commit status", slog.String("error", err.Error()))
