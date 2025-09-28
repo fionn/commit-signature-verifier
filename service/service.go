@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/httplog/v3"
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/google/go-github/v74/github"
@@ -266,8 +267,11 @@ func Run() error {
 	service := Service{github: client, webhookSecret: webhookSecret, allowedSigners: allowedSigners}
 
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
+	r.Use(httplog.RequestLogger(logger, &httplog.Options{
+		Schema:        httplog.SchemaOTEL.Concise(true),
+		RecoverPanics: true,
+	}))
+	r.Use(middleware.AllowContentType("application/json"))
 	r.Post("/api/github/hook", service.handleWebhook)
 
 	address, ok := os.LookupEnv("ADDRESS")
