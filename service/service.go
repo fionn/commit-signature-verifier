@@ -37,33 +37,15 @@ type Service struct {
 	allowedSigners []xssh.AllowedSigner
 }
 
-func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) github.RepoStatus {
+func verifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) github.RepoStatus {
 	var state string
 	var description string
 	context := "commit-signature"
 
-	repositoryCommit, _, err := s.github.Repositories.GetCommit(
-		ctx,
-		*event.Repo.Owner.Name,
-		*event.Repo.Name,
-		*event.After,
-		nil,
-	)
-	if err != nil {
-		state = "error"
-		description = fmt.Sprintf("Failed to get commit %s.", *event.After)
-		logger.Error("Failed to get commit",
-			slog.String("commit", *event.After), slog.String("error", err.Error()))
-		return github.RepoStatus{State: &state, Description: &description, Context: &context}
-	}
-
-	commit := repositoryCommit.Commit
-	commit.SHA = repositoryCommit.SHA
-
 	if !*commit.Verification.Verified {
 		state = "failure"
 		description = fmt.Sprintf("Commit %s is %s.", *commit.SHA, *commit.Verification.Reason)
-		logger.Debug("Commit unverified on GitHub",
+		logger.Info("Commit unverified on GitHub",
 			slog.String("commit", *commit.SHA), slog.String("reason", description))
 		return github.RepoStatus{State: &state, Description: &description, Context: &context}
 	}
@@ -83,7 +65,7 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) g
 	// https://github.blog/changelog/2024-11-12-persistent-commit-signature-verification-now-in-public-preview/
 	timestamp := *commit.Committer.Date.GetTime()
 
-	err = xssh.Verify(message, signature, signerIdentity, s.allowedSigners, "git", timestamp)
+	err := xssh.Verify(message, signature, signerIdentity, allowedSigners, "git", timestamp)
 	if err != nil {
 		state = "failure"
 		description = fmt.Sprintf("Commit %s has bad signature: %s.", *commit.SHA, err.Error())
@@ -94,8 +76,31 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) g
 
 	state = "success"
 	description = fmt.Sprintf("Commit %s has good signature.", (*commit.SHA)[:7])
-	logger.Debug(description, slog.String("commit", *commit.SHA))
+	logger.Info(description, slog.String("commit", *commit.SHA))
 	return github.RepoStatus{State: &state, Description: &description, Context: &context}
+}
+
+func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) github.RepoStatus {
+	repositoryCommit, _, err := s.github.Repositories.GetCommit(
+		ctx,
+		*event.Repo.Owner.Name,
+		*event.Repo.Name,
+		*event.After,
+		nil,
+	)
+	if err != nil {
+		state := "error"
+		description := fmt.Sprintf("Failed to get commit %s.", *event.After)
+		context := "commit-signature"
+		logger.Error("Failed to get commit",
+			slog.String("commit", *event.After), slog.String("error", err.Error()))
+		return github.RepoStatus{State: &state, Description: &description, Context: &context}
+	}
+
+	commit := repositoryCommit.Commit
+	commit.SHA = repositoryCommit.SHA
+
+	return verifyCommit(commit, s.allowedSigners)
 }
 
 func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {
