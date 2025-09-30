@@ -22,16 +22,10 @@ import (
 
 var logger = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-type Secret struct {
-	secret []byte
-}
+type Secret []byte
 
-func (secret Secret) String() string {
-	return "[redacted]"
-}
-
-func (secret Secret) Reveal() []byte {
-	return secret.secret
+func (Secret) LogValue() slog.Value {
+	return slog.StringValue("[redacted]")
 }
 
 type Service struct {
@@ -140,7 +134,7 @@ func (s Service) handlePushEvent(ctx context.Context, event *github.PushEvent) e
 }
 
 func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {
-	payload, err := github.ValidatePayload(r, s.webhookSecret.Reveal())
+	payload, err := github.ValidatePayload(r, s.webhookSecret)
 	if err != nil {
 		logger.Info("Failed to validate payload", slog.String("error", err.Error()))
 		http.Error(w, "Failed to validate payload", http.StatusForbidden)
@@ -203,7 +197,7 @@ func newGitHubClient() (*github.Client, Secret, error) {
 		return nil, webhookSecret, fmt.Errorf("missing WEBHOOK_SECRET")
 	}
 
-	webhookSecret = Secret{[]byte(webhookSecretStr)}
+	webhookSecret = Secret([]byte(webhookSecretStr))
 	privateKey := []byte(privateKeyStr)
 
 	tr := http.DefaultTransport
