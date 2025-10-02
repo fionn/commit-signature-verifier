@@ -36,7 +36,7 @@ We expect the following environment variables to be set:
 ### Compilation
 
 ```shell
-go build cmd/main.go
+make build
 ```
 
 ### Running
@@ -44,7 +44,7 @@ go build cmd/main.go
 ```shell
 go run cmd/main.go
 # or, if compiled,
-./main
+./bin/commit-signature-verifier
 ```
 
 ## Testing
@@ -52,7 +52,7 @@ go run cmd/main.go
 ### Unit Tests
 
 ```shell
-go test -v ./...
+make test
 ```
 
 ### "Integration" Tests
