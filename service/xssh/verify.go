@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"log/slog"
-	"os"
 	"slices"
 	"strings"
 	"time"
@@ -12,8 +11,6 @@ import (
 	"github.com/hiddeco/sshsig"
 	"golang.org/x/crypto/ssh"
 )
-
-var logger = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
 // Given a message, a signature over it, a signer identity, an allowed signers
 // list, a namespace and a timestamp, find the allowed signers entries that
@@ -42,12 +39,12 @@ func Verify(message []byte, signature []byte, identity string, allowedSigners []
 	}
 
 	if len(filteredAllowedSigners) == 0 {
-		logger.Debug("Missing public key", slog.String("identity", identity))
+		slog.Debug("Missing public key", slog.String("identity", identity))
 		return fmt.Errorf("missing public key for identity %s", identity)
 	}
 
 	for _, allowedSigner := range filteredAllowedSigners {
-		logger.Debug("Checking signature",
+		slog.Debug("Checking signature",
 			slog.String("identity", identity),
 			slog.Any("principals", allowedSigner.Principals))
 		err = VerifySignature(message, signature, allowedSigner, namespace, timestamp)
@@ -58,7 +55,7 @@ func Verify(message []byte, signature []byte, identity string, allowedSigners []
 		} else {
 			// We got a bad signature, so keep checking in case another allowed
 			// signer entry for this identity will match.
-			logger.Debug("Got bad signature",
+			slog.Debug("Got bad signature",
 				slog.String("identity", identity),
 				slog.Any("principals", allowedSigner.Principals))
 		}
@@ -74,14 +71,14 @@ func VerifySignature(message []byte, signatureBytes []byte, allowedSigner Allowe
 		return fmt.Errorf("failed to parse SSH signature: %s", err.Error())
 	}
 
-	logger.Debug(
+	slog.Debug(
 		"Loaded signature",
 		slog.String("signature", string(signatureBytes)),
 		slog.String("format", signature.Signature.Format),
 		slog.String("hashAlgorithm", signature.HashAlgorithm.String()),
 		slog.String("namespace", signature.Namespace),
 	)
-	logger.Debug("Verifying message",
+	slog.Debug("Verifying message",
 		slog.String("message", string(message)),
 		slog.String("public_key", strings.TrimSpace(string(ssh.MarshalAuthorizedKey(allowedSigner.PublicKey)))))
 

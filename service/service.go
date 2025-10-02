@@ -20,8 +20,6 @@ import (
 	"github.com/fionn/commit-signature-verifier/service/xssh"
 )
 
-var logger = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
-
 type Secret []byte
 
 func (Secret) LogValue() slog.Value {
@@ -37,7 +35,7 @@ type Service struct {
 func VerifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) (ok bool, description string) {
 	if !*commit.Verification.Verified {
 		description = fmt.Sprintf("Commit %s is %s.", *commit.SHA, *commit.Verification.Reason)
-		logger.Info("Commit unverified on GitHub",
+		slog.Info("Commit unverified on GitHub",
 			slog.String("commit", *commit.SHA), slog.String("error", description))
 		return false, description
 	}
@@ -60,26 +58,26 @@ func VerifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) (o
 	err := xssh.Verify(message, signature, signerIdentity, allowedSigners, "git", timestamp)
 	if err != nil {
 		description = fmt.Sprintf("Commit %s has bad signature: %s.", *commit.SHA, err.Error())
-		logger.Info("Commit has bad signature",
+		slog.Info("Commit has bad signature",
 			slog.String("commit", *commit.SHA), slog.String("error", err.Error()))
 		return false, description
 	}
 
 	description = fmt.Sprintf("Commit %s has good signature.", (*commit.SHA)[:7])
-	logger.Info("Commit has good signature", slog.String("commit", *commit.SHA))
+	slog.Info("Commit has good signature", slog.String("commit", *commit.SHA))
 	return true, description
 }
 
 func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (*github.RepoStatus, error) {
 	if strings.HasPrefix(*event.Ref, "refs/tags/") {
-		logger.Debug("received tag so skipping status", slog.String("tag", *event.Ref))
+		slog.Debug("received tag so skipping status", slog.String("tag", *event.Ref))
 		return nil, nil
 	}
 
 	// Push events can include things like branch deletion, which aren't
 	// relevant for us.
 	if *event.After == strings.Repeat("0", 40) && *event.Deleted {
-		logger.Debug("received deletion event so skipping status", slog.String("ref", *event.Ref))
+		slog.Debug("received deletion event so skipping status", slog.String("ref", *event.Ref))
 		return nil, nil
 	}
 
@@ -95,7 +93,7 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (
 	if err != nil {
 		state := "error"
 		description := fmt.Sprintf("Failed to get commit %s.", *event.After)
-		logger.Error("Failed to get commit",
+		slog.Error("Failed to get commit",
 			slog.String("commit", *event.After), slog.String("error", err.Error()))
 		return &github.RepoStatus{State: &state, Description: &description, Context: &context}, nil
 	}
@@ -117,7 +115,7 @@ func (s Service) handlePushEvent(ctx context.Context, event *github.PushEvent) e
 		return fmt.Errorf("failed to create commit status: %w", err)
 	}
 	if status == nil {
-		logger.Debug("No status created for event")
+		slog.Debug("No status created for event")
 		return nil
 	}
 	_, _, err = s.github.Repositories.CreateStatus(
@@ -136,31 +134,31 @@ func (s Service) handlePushEvent(ctx context.Context, event *github.PushEvent) e
 func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	payload, err := github.ValidatePayload(r, s.webhookSecret)
 	if err != nil {
-		logger.Info("Failed to validate payload", slog.String("error", err.Error()))
+		slog.Info("Failed to validate payload", slog.String("error", err.Error()))
 		http.Error(w, "Failed to validate payload", http.StatusForbidden)
 		return
 	}
 
 	event, err := github.ParseWebHook(github.WebHookType(r), payload)
 	if err != nil {
-		logger.Error("Failed to parse payload", slog.String("error", err.Error()))
+		slog.Error("Failed to parse payload", slog.String("error", err.Error()))
 		http.Error(w, "Failed to parse payload", http.StatusBadRequest)
 		return
 	}
 
 	switch event := event.(type) {
 	case *github.PushEvent:
-		logger.Info("Received push event",
+		slog.Info("Received push event",
 			slog.String("repository", *event.Repo.FullName),
 			slog.String("ref", *event.Ref),
 			slog.String("commit", *event.After))
 		ctx := r.Context()
 		if err := s.handlePushEvent(ctx, event); err != nil {
-			logger.Error("Failed to handle push event", slog.String("error", err.Error()))
+			slog.Error("Failed to handle push event", slog.String("error", err.Error()))
 			http.Error(w, "Failed to handle push event", http.StatusInternalServerError)
 		}
 	default:
-		logger.Warn("Received webhook for unexpected event", "event", event)
+		slog.Warn("Received webhook for unexpected event", "event", event)
 		http.Error(w, "Received webhook for unexpected event", http.StatusBadRequest)
 	}
 }
@@ -219,7 +217,7 @@ func populateAllowedSigners() (allowedSigners []xssh.AllowedSigner, err error) {
 		allowedSignersPath = homedir + "/.ssh/allowed_signers"
 	}
 
-	logger.Info("Loading allowed signers from file", slog.String("path", allowedSignersPath))
+	slog.Info("Loading allowed signers from file", slog.String("path", allowedSignersPath))
 	f, err := os.Open(allowedSignersPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open allowed signers file %s: %w", allowedSignersPath, err)
@@ -236,7 +234,7 @@ func populateAllowedSigners() (allowedSigners []xssh.AllowedSigner, err error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse allowed signer: %w", err)
 		}
-		logger.Debug("Loaded allowed signer", slog.Any("principals", allowedSigner.Principals))
+		slog.Debug("Loaded allowed signer", slog.Any("principals", allowedSigner.Principals))
 		allowedSigners = append(allowedSigners, *allowedSigner)
 	}
 	return allowedSigners, nil
@@ -245,14 +243,14 @@ func populateAllowedSigners() (allowedSigners []xssh.AllowedSigner, err error) {
 func Run() error {
 	client, webhookSecret, err := newGitHubClient()
 	if err != nil {
-		logger.Error("failed to create GitHub client",
+		slog.Error("failed to create GitHub client",
 			slog.String("error", err.Error()))
 		return err
 	}
 
 	allowedSigners, err := populateAllowedSigners()
 	if err != nil {
-		logger.Error("failed to populate allowed signers",
+		slog.Error("failed to populate allowed signers",
 			slog.String("error", err.Error()))
 		return err
 	}
@@ -260,7 +258,7 @@ func Run() error {
 	service := Service{github: client, webhookSecret: webhookSecret, allowedSigners: allowedSigners}
 
 	r := chi.NewRouter()
-	r.Use(httplog.RequestLogger(logger, &httplog.Options{
+	r.Use(httplog.RequestLogger(slog.Default(), &httplog.Options{
 		Schema:        httplog.SchemaOTEL.Concise(true),
 		RecoverPanics: true,
 	}))
@@ -272,9 +270,9 @@ func Run() error {
 		address = "localhost:8080"
 	}
 
-	logger.Info("Listening", slog.String("address", address))
+	slog.Info("Listening", slog.String("address", address))
 	if err := http.ListenAndServe(address, r); err != nil && err != http.ErrServerClosed {
-		logger.Error("server failed", "address", address, "error", err)
+		slog.Error("server failed", "address", address, "error", err)
 		return err
 	}
 
