@@ -34,32 +34,31 @@ func loadCommit(path string) (*github.Commit, error) {
 	return commit, err
 }
 
-func TestVerifyExampleUnsignedCommit(t *testing.T) {
-	commit, err := loadCommit("test_data/octocat_commit.json")
-	if err != nil {
-		t.Fatalf("Could not unmarshal example commit")
-	}
-	allowedSigners, err := populateAllowedSigners()
-	if err != nil {
-		t.Fatalf("Could not load allowed signers: %s", err)
-	}
-	ok, _ := service.VerifyCommit(commit, allowedSigners)
-	if ok {
-		t.Errorf("Expected verification to fail on commit unverified by GitHub")
-	}
-}
+func TestCommit(t *testing.T) {
 
-func TestVerifySignedCommit(t *testing.T) {
-	commit, err := loadCommit("test_data/signed_commit.json")
-	if err != nil {
-		t.Fatalf("Could not unmarshal example commit")
+	tests := []struct {
+		name           string
+		commitDataFile string
+		ok             bool
+	}{
+		{"BadOctocatCommit", "test_data/octocat_commit.json", false},
+		{"GoodCommitSignature", "test_data/signed_commit.json", true},
 	}
-	allowedSigners, err := populateAllowedSigners()
-	if err != nil {
-		t.Fatalf("Could not load allowed signers: %s", err)
-	}
-	ok, _ := service.VerifyCommit(commit, allowedSigners)
-	if !ok {
-		t.Errorf("Expected verification to succeed on commit with good signature")
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			commit, err := loadCommit(tt.commitDataFile)
+			if err != nil {
+				t.Fatalf("Could not unmarshal example commit")
+			}
+			allowedSigners, err := populateAllowedSigners()
+			if err != nil {
+				t.Fatalf("Could not load allowed signers: %s", err)
+			}
+			ok, _ := service.VerifyCommit(commit, allowedSigners)
+			if ok != tt.ok {
+				t.Errorf("Expected verification to be %v but got %v instead", tt.ok, ok)
+			}
+		})
 	}
 }
