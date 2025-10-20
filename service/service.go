@@ -34,7 +34,7 @@ type Service struct {
 
 func VerifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) (ok bool, description string) {
 	if !*commit.Verification.Verified {
-		description = fmt.Sprintf("Commit %s is %s.", *commit.SHA, *commit.Verification.Reason)
+		description = fmt.Sprintf("Commit %s is %s.", (*commit.SHA)[:7], *commit.Verification.Reason)
 		slog.Info("Commit unverified on GitHub",
 			slog.String("commit", *commit.SHA), slog.String("error", description))
 		return false, description
@@ -57,7 +57,7 @@ func VerifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) (o
 
 	err := xssh.Verify(message, signature, signerIdentity, allowedSigners, "git", timestamp)
 	if err != nil {
-		description = fmt.Sprintf("Commit %s has bad signature: %s.", *commit.SHA, err.Error())
+		description = fmt.Sprintf("Commit %s has bad signature: %s.", (*commit.SHA)[:7], err.Error())
 		slog.Info("Commit has bad signature",
 			slog.String("commit", *commit.SHA), slog.String("error", err.Error()))
 		return false, description
