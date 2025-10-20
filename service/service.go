@@ -15,7 +15,7 @@ import (
 	"github.com/go-chi/httplog/v3"
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
-	"github.com/google/go-github/v74/github"
+	"github.com/google/go-github/v75/github"
 
 	"github.com/fionn/commit-signature-verifier/service/xssh"
 )
