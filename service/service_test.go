@@ -35,7 +35,6 @@ func loadCommit(path string) (*github.Commit, error) {
 }
 
 func TestCommit(t *testing.T) {
-
 	tests := []struct {
 		name           string
 		commitDataFile string

@@ -24,7 +24,6 @@ coverage: coverage.out
 lint:
 	@golangci-lint run
 
-
 .PHONY: clean
 clean:
 	@rm -r bin coverage.out
