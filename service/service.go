@@ -71,14 +71,14 @@ func VerifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) (o
 
 func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (*github.RepoStatus, error) {
 	if strings.HasPrefix(*event.Ref, "refs/tags/") {
-		slog.Debug("received tag so skipping status", slog.String("tag", *event.Ref))
+		slog.Debug("Received tag so skipping status", slog.String("tag", *event.Ref))
 		return nil, nil
 	}
 
 	// Push events can include things like branch deletion, which aren't
 	// relevant for us.
 	if *event.After == strings.Repeat("0", 40) && *event.Deleted {
-		slog.Debug("received deletion event so skipping status", slog.String("ref", *event.Ref))
+		slog.Debug("Received deletion event so skipping status", slog.String("ref", *event.Ref))
 		return nil, nil
 	}
 
@@ -244,14 +244,14 @@ func populateAllowedSigners() (allowedSigners []xssh.AllowedSigner, err error) {
 func Run() error {
 	client, webhookSecret, err := newGitHubClient()
 	if err != nil {
-		slog.Error("failed to create GitHub client",
+		slog.Error("Failed to create GitHub client",
 			slog.String("error", err.Error()))
 		return err
 	}
 
 	allowedSigners, err := populateAllowedSigners()
 	if err != nil {
-		slog.Error("failed to populate allowed signers",
+		slog.Error("Failed to populate allowed signers",
 			slog.String("error", err.Error()))
 		return err
 	}
@@ -273,7 +273,7 @@ func Run() error {
 
 	slog.Info("Listening", slog.String("address", address))
 	if err := http.ListenAndServe(address, r); err != nil && err != http.ErrServerClosed {
-		slog.Error("server failed", slog.String("address", address),
+		slog.Error("Server failed", slog.String("address", address),
 			slog.String("error", err.Error()))
 		return err
 	}
