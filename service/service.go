@@ -3,6 +3,7 @@ package service
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -167,7 +168,7 @@ func newGitHubClient() (*github.Client, Secret, error) {
 	var webhookSecret Secret
 	installationIDStr, ok := os.LookupEnv("INSTALLATION_ID")
 	if !ok {
-		return nil, webhookSecret, fmt.Errorf("missing INSTALLATION_ID")
+		return nil, webhookSecret, errors.New("missing INSTALLATION_ID")
 	}
 
 	installationID, err := strconv.ParseInt(installationIDStr, 10, 64)
@@ -177,7 +178,7 @@ func newGitHubClient() (*github.Client, Secret, error) {
 
 	appIDStr, ok := os.LookupEnv("APP_ID")
 	if !ok {
-		return nil, webhookSecret, fmt.Errorf("missing APP_ID")
+		return nil, webhookSecret, errors.New("missing APP_ID")
 	}
 
 	appID, err := strconv.ParseInt(appIDStr, 10, 64)
@@ -187,12 +188,12 @@ func newGitHubClient() (*github.Client, Secret, error) {
 
 	privateKeyStr, ok := os.LookupEnv("PRIVATE_KEY")
 	if !ok {
-		return nil, webhookSecret, fmt.Errorf("missing PRIVATE_KEY")
+		return nil, webhookSecret, errors.New("missing PRIVATE_KEY")
 	}
 
 	webhookSecretStr, ok := os.LookupEnv("WEBHOOK_SECRET")
 	if !ok {
-		return nil, webhookSecret, fmt.Errorf("missing WEBHOOK_SECRET")
+		return nil, webhookSecret, errors.New("missing WEBHOOK_SECRET")
 	}
 
 	webhookSecret = Secret([]byte(webhookSecretStr))

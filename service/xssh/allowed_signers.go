@@ -29,7 +29,8 @@ func parseTimestamp(timestamp string) (time.Time, error) {
 	timestampLength := len(timestamp)
 
 	if timestampLength < 8 || timestampLength > 14 {
-		return time.Time{}, fmt.Errorf("timestamp string has unexpected length")
+		return time.Time{}, fmt.Errorf("timestamp string has unexpected length: %d",
+			timestampLength)
 	}
 
 	// Strictly speaking, we should only match against YYYYMMDD[Z] or
@@ -52,7 +53,7 @@ func parseOptions(options []string) (optionsStruct Options, err error) {
 		} else {
 			k, v, found := strings.Cut(option, "=")
 			if !found {
-				return optionsStruct, fmt.Errorf("failed to parse option")
+				return optionsStruct, fmt.Errorf("failed to parse option: %s", k)
 			}
 			v = strings.Trim(v, "\"")
 
@@ -64,7 +65,7 @@ func parseOptions(options []string) (optionsStruct Options, err error) {
 			case "valid-after":
 				optionsStruct.ValidAfter, err = parseTimestamp(v)
 			default:
-				return optionsStruct, fmt.Errorf("received unknown option")
+				return optionsStruct, fmt.Errorf("received unknown option: %s", k)
 			}
 		}
 	}
