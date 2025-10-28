@@ -52,13 +52,12 @@ func Verify(message []byte, signature []byte, identity string, allowedSigners []
 			// We got a good signature, no need to check any other allowed
 			// signers.
 			break
-		} else {
-			// We got a bad signature, so keep checking in case another allowed
-			// signer entry for this identity will match.
-			slog.Debug("Got bad signature",
-				slog.String("identity", identity),
-				slog.Any("principals", allowedSigner.Principals))
 		}
+		// We got a bad signature, so keep checking in case another allowed
+		// signer entry for this identity will match.
+		slog.Debug("Got bad signature",
+			slog.String("identity", identity),
+			slog.Any("principals", allowedSigner.Principals))
 	}
 
 	return err
