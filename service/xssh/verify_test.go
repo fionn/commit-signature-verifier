@@ -7,10 +7,6 @@ import (
 	"github.com/fionn/commit-signature-verifier/service/xssh"
 )
 
-var timestamp = time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
-var namespace = "git"
-var allowedSignerBytes = []byte(`git@fionn.computer namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILbkp0LwqqV/w6wAGV9bwiR6FpHC/5DtiBAKFLZxvaSp fionn@lotus`)
-var allowedSigner, _ = xssh.ParseAllowedSigner(allowedSignerBytes)
 var message = []byte(`tree bfdc48a26bb78e5b4f0798932f4d3460b1f9132e
 author Fionn Fitzmaurice <git@fionn.computer> 1757763274 +0800
 committer Fionn Fitzmaurice <git@fionn.computer> 1757764182 +0800
@@ -25,6 +21,14 @@ lvGzWXH8/iVyL2DKMUDwU=
 -----END SSH SIGNATURE-----`)
 
 func TestSSHSignature(t *testing.T) {
+	timestamp := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	namespace := "git"
+	allowedSignerBytes := []byte(`git@fionn.computer namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILbkp0LwqqV/w6wAGV9bwiR6FpHC/5DtiBAKFLZxvaSp fionn@lotus`)
+	allowedSigner, err := xssh.ParseAllowedSigner(allowedSignerBytes)
+	if err != nil {
+		t.Fatalf("failed to parse test allowed signers: %s", err)
+	}
+
 	tests := []struct {
 		name          string
 		message       []byte
