@@ -159,7 +159,7 @@ func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed to handle push event", http.StatusInternalServerError)
 		}
 	default:
-		slog.Warn("Received webhook for unexpected event", "event", event)
+		slog.Warn("Received webhook for unexpected event", slog.Any("event", event))
 		http.Error(w, "Received webhook for unexpected event", http.StatusBadRequest)
 	}
 }
@@ -273,7 +273,8 @@ func Run() error {
 
 	slog.Info("Listening", slog.String("address", address))
 	if err := http.ListenAndServe(address, r); err != nil && err != http.ErrServerClosed {
-		slog.Error("server failed", "address", address, "error", err)
+		slog.Error("server failed", slog.String("address", address),
+			slog.String("error", err.Error()))
 		return err
 	}
 
