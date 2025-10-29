@@ -12,23 +12,32 @@ import (
 	"github.com/fionn/commit-signature-verifier/service/xssh"
 )
 
-func populateAllowedSigners() ([]xssh.AllowedSigner, error) {
+func populateAllowedSigners(t *testing.T) ([]xssh.AllowedSigner, error) {
+	t.Helper()
 	allowedSignerBytes := []byte(`git@fionn.computer namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILbkp0LwqqV/w6wAGV9bwiR6FpHC/5DtiBAKFLZxvaSp fionn@lotus`)
 	allowedSigner, err := xssh.ParseAllowedSigner(allowedSignerBytes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse allowed signer: %w", err)
+		err = fmt.Errorf("failed to parse allowed signer: %w", err)
+		t.Error(err.Error())
+		return nil, err
 	}
 	return []xssh.AllowedSigner{*allowedSigner}, nil
 }
 
-func loadCommit(path string) (*github.Commit, error) {
+func loadCommit(t *testing.T, path string) (*github.Commit, error) {
+	t.Helper()
 	repositoryCommit := new(github.RepositoryCommit)
 	commitJson, err := os.ReadFile(path)
 	if err != nil {
+		t.Errorf("Failed to load commit from path %s: %v", path, err)
 		return nil, err
 	}
 
 	err = json.Unmarshal(commitJson, &repositoryCommit)
+	if err != nil {
+		t.Error("Failed to unmarshal test commit payload")
+		return nil, err
+	}
 	commit := repositoryCommit.Commit
 	commit.SHA = repositoryCommit.SHA
 	return commit, err
@@ -46,11 +55,11 @@ func TestCommit(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			commit, err := loadCommit(tt.commitDataFile)
+			commit, err := loadCommit(t, tt.commitDataFile)
 			if err != nil {
 				t.Fatalf("Could not unmarshal example commit")
 			}
-			allowedSigners, err := populateAllowedSigners()
+			allowedSigners, err := populateAllowedSigners(t)
 			if err != nil {
 				t.Fatalf("Could not load allowed signers: %s", err)
 			}
