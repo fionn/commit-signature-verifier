@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -271,8 +272,14 @@ func Run() error {
 		address = "localhost:8080"
 	}
 
+	server := &http.Server{
+		Addr:              address,
+		Handler:           r,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+
 	slog.Info("Listening", slog.String("address", address))
-	if err := http.ListenAndServe(address, r); err != nil && err != http.ErrServerClosed {
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		slog.Error("Server failed", slog.String("address", address),
 			slog.String("error", err.Error()))
 		return err
