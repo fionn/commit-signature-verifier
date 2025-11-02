@@ -2,7 +2,6 @@ package xssh
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"io"
 	"strings"
@@ -72,19 +71,19 @@ func parseOptions(options []string) (optionsStruct Options, err error) {
 	return optionsStruct, err
 }
 
-func ParseAllowedSigner(in []byte) (allowedSigner *AllowedSigner, err error) {
-	principalsBytes, authorizedKeyBytes, found := bytes.Cut(in, []byte(" "))
+func ParseAllowedSigner(in string) (allowedSigner *AllowedSigner, err error) {
+	principalsBytes, authorizedKeyBytes, found := strings.Cut(in, " ")
 	if !found {
 		return nil, fmt.Errorf("failed to parse allowed signer %s", in)
 	}
 
-	publicKey, comment, optionsStr, rest, err := ssh.ParseAuthorizedKey(authorizedKeyBytes)
+	publicKey, comment, optionsStr, rest, err := ssh.ParseAuthorizedKey([]byte(authorizedKeyBytes))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse key: %w", err)
 	}
 
 	var principals []string
-	for v := range bytes.SplitSeq(principalsBytes, []byte(",")) {
+	for v := range strings.SplitSeq(principalsBytes, ",") {
 		principals = append(principals, string(v))
 	}
 
@@ -95,7 +94,7 @@ func ParseAllowedSigner(in []byte) (allowedSigner *AllowedSigner, err error) {
 func ReadAllowedSigners(f io.Reader) (allowedSigners []AllowedSigner, err error) {
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
-		allowedSigner, err := ParseAllowedSigner(scanner.Bytes())
+		allowedSigner, err := ParseAllowedSigner(scanner.Text())
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse allowed signer: %w", err)
 		}

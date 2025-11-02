@@ -14,8 +14,7 @@ import (
 
 func populateAllowedSigners(t *testing.T) ([]xssh.AllowedSigner, error) {
 	t.Helper()
-	allowedSignerBytes := []byte(`git@fionn.computer namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILbkp0LwqqV/w6wAGV9bwiR6FpHC/5DtiBAKFLZxvaSp fionn@lotus`)
-	allowedSigner, err := xssh.ParseAllowedSigner(allowedSignerBytes)
+	allowedSigner, err := xssh.ParseAllowedSigner(`git@fionn.computer namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILbkp0LwqqV/w6wAGV9bwiR6FpHC/5DtiBAKFLZxvaSp fionn@lotus`)
 	if err != nil {
 		err = fmt.Errorf("failed to parse allowed signer: %w", err)
 		t.Error(err.Error())

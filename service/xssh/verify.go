@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log/slog"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -24,16 +25,13 @@ import (
 //     of verify-before or verify-after are present.
 func Verify(message []byte, signature []byte, identity string, allowedSigners []AllowedSigner,
 	namespace string, timestamp time.Time) (err error) {
-	// Shortcut: we should be checking glob matches but we're assuming the
-	// allowed signers have literal principals, not patterns.
-	//
-	// We have to check this now, since the underlying verification function
-	// doesn't have a concept of principals or an identity, so we are
-	// responsible for finding public keys that are appropriate to check
-	// against.
-
+	// First narrow down our allowed signers list to include only those elements
+	// that match the given principal. We have to check this now, since the
+	// underlying verification function doesn't have a concept of principals or
+	// an identity, so we are responsible for finding public keys that are
+	// appropriate to check against.
 	candidateSigners := slices.DeleteFunc(allowedSigners, func(s AllowedSigner) bool {
-		return !slices.Contains(s.Principals, identity)
+		return !patternMatch(s.Principals, identity)
 	})
 
 	if len(candidateSigners) == 0 {
@@ -59,6 +57,50 @@ func Verify(message []byte, signature []byte, identity string, allowedSigners []
 	}
 
 	return err
+}
+
+// patternMatch takes a list of patterns and a string and does a glob-like
+// match for the string against each pattern. From ssh_config(5),
+//
+// > A pattern-list is a comma-separated list of patterns. Patterns within
+// > pattern-lists may be negated by preceding them with an exclamation mark
+// > (‘!’).
+// >
+// > For example, to allow a key to be used from anywhere within an organization
+// > except from the "dialup" pool, the following entry (in authorized_keys)
+// > could be used: from="!*.dialup.example.com,*.example.com"
+//
+// and since there is no mention of ordering we infer that negation will take
+// precedence, so we must always return a negative match if we have a negation
+// of a positive match, even if we also have a positive match elsewhere in the
+// list of patterns.
+func patternMatch(patterns []string, identity string) (matched bool) {
+	// Since we can have negative matches anywhere in the pattern list, we can't
+	// return early on match and must check each one. We absorb positive matches
+	// in anyMatched, which is returned at the end.
+	anyMatched := false
+
+	for _, pattern := range patterns {
+		pattern, negate := strings.CutPrefix(pattern, "!")
+
+		matched, err := filepath.Match(pattern, identity)
+		// Bail if we can't understand the pattern or if it contains escape
+		// sequences SSH doesn't support.
+		if err != nil || strings.ContainsAny(pattern, "[\\") {
+			slog.Error("Bad pattern for principal", slog.String("principal", pattern))
+			return false
+		}
+
+		if negate && matched {
+			// We've matched on a negated pattern, so return a negative match
+			// early.
+			return false
+		}
+
+		anyMatched = anyMatched || matched
+	}
+
+	return anyMatched
 }
 
 func VerifySignature(message []byte, signatureBytes []byte, allowedSigner AllowedSigner,
