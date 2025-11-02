@@ -26,13 +26,25 @@ func populateAllowedSigners(t *testing.T) ([]xssh.AllowedSigner, error) {
 
 func loadCommit(t *testing.T, path string) (*github.Commit, error) {
 	t.Helper()
-	repositoryCommit := new(github.RepositoryCommit)
-	commitJson, err := os.ReadFile(path)
+	dataDirectory := "test_data"
+	root, err := os.OpenRoot(dataDirectory)
+	if err != nil {
+		t.Errorf("Failed to open directory: %s", dataDirectory)
+		return nil, err
+	}
+	defer func() {
+		if root.Close() != nil {
+			t.Errorf("Failed to close directory: %s", dataDirectory)
+		}
+	}()
+
+	commitJson, err := root.ReadFile(path)
 	if err != nil {
 		t.Errorf("Failed to load commit from path %s: %v", path, err)
 		return nil, err
 	}
 
+	repositoryCommit := new(github.RepositoryCommit)
 	err = json.Unmarshal(commitJson, &repositoryCommit)
 	if err != nil {
 		t.Error("Failed to unmarshal test commit payload")
@@ -49,8 +61,8 @@ func TestCommit(t *testing.T) {
 		commitDataFile string
 		ok             bool
 	}{
-		{"BadOctocatCommit", "test_data/octocat_commit.json", false},
-		{"GoodCommitSignature", "test_data/signed_commit.json", true},
+		{"BadOctocatCommit", "octocat_commit.json", false},
+		{"GoodCommitSignature", "signed_commit.json", true},
 	}
 
 	for _, tt := range tests {
