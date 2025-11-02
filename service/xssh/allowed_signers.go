@@ -1,8 +1,10 @@
 package xssh
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -90,4 +92,16 @@ func ParseAllowedSigner(in []byte) (allowedSigner *AllowedSigner, err error) {
 
 	options, err := parseOptions(optionsStr)
 	return &AllowedSigner{principals, options, publicKey, comment, rest}, err
+}
+
+func ReadAllowedSigners(f io.Reader) (allowedSigners []AllowedSigner, err error) {
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		allowedSigner, err := ParseAllowedSigner(scanner.Bytes())
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse allowed signer: %w", err)
+		}
+		allowedSigners = append(allowedSigners, *allowedSigner)
+	}
+	return allowedSigners, nil
 }

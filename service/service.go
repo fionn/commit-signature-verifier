@@ -1,14 +1,11 @@
 package service
 
 import (
-	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -19,18 +16,13 @@ import (
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/google/go-github/v75/github"
 
+	"github.com/fionn/commit-signature-verifier/service/configuration"
 	"github.com/fionn/commit-signature-verifier/service/xssh"
 )
 
-type Secret []byte
-
-func (Secret) LogValue() slog.Value {
-	return slog.StringValue("[redacted]")
-}
-
 type Service struct {
 	github         *github.Client
-	webhookSecret  Secret
+	webhookSecret  configuration.Secret
 	allowedSigners []xssh.AllowedSigner
 }
 
@@ -111,7 +103,7 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (
 	return &github.RepoStatus{State: &state, Description: &description, Context: &context}, nil
 }
 
-func (s Service) handlePushEvent(ctx context.Context, event *github.PushEvent) error {
+func (s Service) postPushEventStatus(ctx context.Context, event *github.PushEvent) error {
 	status, err := s.statusFromEvent(ctx, event)
 	if err != nil {
 		return fmt.Errorf("failed to create commit status: %w", err)
@@ -154,8 +146,7 @@ func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {
 			slog.String("repository", *event.Repo.FullName),
 			slog.String("ref", *event.Ref),
 			slog.String("commit", *event.After))
-		ctx := r.Context()
-		if err := s.handlePushEvent(ctx, event); err != nil {
+		if err := s.postPushEventStatus(r.Context(), event); err != nil {
 			slog.Error("Failed to handle push event", slog.String("error", err.Error()))
 			http.Error(w, "Failed to handle push event", http.StatusInternalServerError)
 		}
@@ -165,99 +156,42 @@ func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func newGitHubClient() (*github.Client, Secret, error) {
-	var webhookSecret Secret
-	installationIDStr, ok := os.LookupEnv("INSTALLATION_ID")
-	if !ok {
-		return nil, webhookSecret, errors.New("missing INSTALLATION_ID")
-	}
-
-	installationID, err := strconv.ParseInt(installationIDStr, 10, 64)
+func newGitHubClient(appID int64, installationID int64, privateKey []byte) (*github.Client, error) {
+	tr, err := ghinstallation.New(http.DefaultTransport, appID, installationID, privateKey)
 	if err != nil {
-		return nil, webhookSecret, fmt.Errorf("bad INSTALLATION_ID %s: %w", installationIDStr, err)
+		return nil, fmt.Errorf("failed to build transport: %w", err)
 	}
 
-	appIDStr, ok := os.LookupEnv("APP_ID")
-	if !ok {
-		return nil, webhookSecret, errors.New("missing APP_ID")
-	}
-
-	appID, err := strconv.ParseInt(appIDStr, 10, 64)
-	if err != nil {
-		return nil, webhookSecret, fmt.Errorf("bad APP ID %s: %w", appIDStr, err)
-	}
-
-	privateKeyStr, ok := os.LookupEnv("PRIVATE_KEY")
-	if !ok {
-		return nil, webhookSecret, errors.New("missing PRIVATE_KEY")
-	}
-
-	webhookSecretStr, ok := os.LookupEnv("WEBHOOK_SECRET")
-	if !ok {
-		return nil, webhookSecret, errors.New("missing WEBHOOK_SECRET")
-	}
-
-	webhookSecret = Secret([]byte(webhookSecretStr))
-	privateKey := []byte(privateKeyStr)
-
-	tr := http.DefaultTransport
-	itr, err := ghinstallation.New(tr, appID, installationID, privateKey)
-	if err != nil {
-		return nil, webhookSecret, fmt.Errorf("failed to build transport: %w", err)
-	}
-
-	return github.NewClient(&http.Client{Transport: itr}), webhookSecret, nil
-}
-
-func populateAllowedSigners() (allowedSigners []xssh.AllowedSigner, err error) {
-	allowedSignersPath, ok := os.LookupEnv("SSH_ALLOWED_SIGNERS")
-	if !ok {
-		homedir, err := os.UserHomeDir()
-		if err != nil {
-			return nil, fmt.Errorf("could not construct fallback path: %w", err)
-		}
-		allowedSignersPath = homedir + "/.ssh/allowed_signers"
-	}
-
-	slog.Info("Loading allowed signers from file", slog.String("path", allowedSignersPath))
-	f, err := os.Open(allowedSignersPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open allowed signers file %s: %w", allowedSignersPath, err)
-	}
-	defer func() {
-		if err := f.Close(); err != nil {
-			panic(err)
-		}
-	}()
-
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		allowedSigner, err := xssh.ParseAllowedSigner(scanner.Bytes())
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse allowed signer: %w", err)
-		}
-		slog.Debug("Loaded allowed signer", slog.Any("principals", allowedSigner.Principals))
-		allowedSigners = append(allowedSigners, *allowedSigner)
-	}
-	return allowedSigners, nil
+	return github.NewClient(&http.Client{Transport: tr}), nil
 }
 
 func Run() error {
-	client, webhookSecret, err := newGitHubClient()
+	config, err := configuration.FromEnv()
 	if err != nil {
-		slog.Error("Failed to create GitHub client",
+		slog.Error("Failed to load configuration",
 			slog.String("error", err.Error()))
 		return err
 	}
 
-	allowedSigners, err := populateAllowedSigners()
+	allowedSigners, err := configuration.AllowedSignersFromFile(config.AllowedSignersPath)
 	if err != nil {
 		slog.Error("Failed to populate allowed signers",
 			slog.String("error", err.Error()))
 		return err
 	}
 
-	service := Service{github: client, webhookSecret: webhookSecret, allowedSigners: allowedSigners}
+	githubClient, err := newGitHubClient(config.AppID, config.InstallationID, config.PrivateKey)
+	if err != nil {
+		slog.Error("Failed to create GitHub client",
+			slog.String("error", err.Error()))
+		return err
+	}
+
+	service := Service{
+		github:         githubClient,
+		webhookSecret:  config.WebhookSecret,
+		allowedSigners: allowedSigners,
+	}
 
 	r := chi.NewRouter()
 	r.Use(httplog.RequestLogger(slog.Default(), &httplog.Options{
