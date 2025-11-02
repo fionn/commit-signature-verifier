@@ -26,7 +26,31 @@ func TestInput(t *testing.T) {
 			err:           errors.New("some error"),
 		},
 		{
-			name:          "GoodAllowedSigner",
+			name:          "BasicAllowedSigner",
+			allowedSigner: []byte(`example@example.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILbkp0LwqqV/w6wAGV9bwiR6FpHC/5DtiBAKFLZxvaSp`),
+			principals:    []string{"example@example.com"},
+			namespaces:    []string{},
+			validBefore:   time.Time{},
+			validAfter:    time.Time{},
+			comment:       "",
+		},
+		{
+			name:          "ValidBeforeFormatTooShort",
+			allowedSigner: []byte(`example@example.com valid-before=204701 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILbkp0LwqqV/w6wAGV9bwiR6FpHC/5DtiBAKFLZxvaSp`),
+			err:           errors.New("some error"),
+		},
+		{
+			name:          "ValidBeforeFormatNonInt",
+			allowedSigner: []byte(`example@example.com valid-before=aaaaaaaa ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILbkp0LwqqV/w6wAGV9bwiR6FpHC/5DtiBAKFLZxvaSp`),
+			err:           errors.New("some error"),
+		},
+		{
+			name:          "InvalidKeyType",
+			allowedSigner: []byte(`example@example.com valid-before=aaaaaaaa ssh-yolo AAAAC3NzaC1lZDI1NTE5AAAAILbkp0LwqqV/w6wAGV9bwiR6FpHC/5DtiBAKFLZxvaSp`),
+			err:           errors.New("some error"),
+		},
+		{
+			name:          "CompleteAllowedSigner",
 			allowedSigner: []byte(`example@example.com,*@123 namespaces="git,file",valid-before=20470101,valid-after=20010101000000Z ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILbkp0LwqqV/w6wAGV9bwiR6FpHC/5DtiBAKFLZxvaSp some-comment`),
 			principals:    []string{"example@example.com", "*@123"},
 			namespaces:    []string{"git", "file"},
@@ -49,7 +73,7 @@ func TestInput(t *testing.T) {
 			}
 
 			if !slices.Equal(allowedSigner.Principals, tt.principals) {
-				t.Errorf("Failed to match expected principals; got %s, expexted %s", allowedSigner.Principals, tt.principals)
+				t.Errorf("Failed to match expected principals; got %s, expected %s", allowedSigner.Principals, tt.principals)
 			}
 
 			if allowedSigner.Options.CertAuthority {

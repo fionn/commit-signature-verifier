@@ -30,14 +30,12 @@ func parseTimestamp(timestamp string) (time.Time, error) {
 	timestamp, _ = strings.CutSuffix(timestamp, "Z")
 	timestampLength := len(timestamp)
 
-	if timestampLength < 8 || timestampLength > 14 {
+	// We only match against YYYYMMDD[Z] or YYYYMMDDHHMM[SS][Z] as per the spec.
+	if timestampLength != 8 && timestampLength != 12 && timestampLength != 14 {
 		return time.Time{}, fmt.Errorf("timestamp string has unexpected length: %d",
 			timestampLength)
 	}
 
-	// Strictly speaking, we should only match against YYYYMMDD[Z] or
-	// YYYYMMDDHHMM[SS][Z], but we allow for intermediate resolution.
-	//
 	// According to ssh-keygen(1),
 	// > Dates and times will be interpreted in the current system time zone
 	// > unless suffixed with a Z character, which causes them to be
