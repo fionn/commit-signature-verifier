@@ -31,19 +31,17 @@ func Verify(message []byte, signature []byte, identity string, allowedSigners []
 	// doesn't have a concept of principals or an identity, so we are
 	// responsible for finding public keys that are appropriate to check
 	// against.
-	var filteredAllowedSigners []AllowedSigner
-	for _, allowedSigner := range allowedSigners {
-		if slices.Contains(allowedSigner.Principals, identity) {
-			filteredAllowedSigners = append(filteredAllowedSigners, allowedSigner)
-		}
-	}
 
-	if len(filteredAllowedSigners) == 0 {
+	candidateSigners := slices.DeleteFunc(allowedSigners, func(s AllowedSigner) bool {
+		return !slices.Contains(s.Principals, identity)
+	})
+
+	if len(candidateSigners) == 0 {
 		slog.Debug("Missing public key", slog.String("identity", identity))
 		return fmt.Errorf("missing public key for identity %s", identity)
 	}
 
-	for _, allowedSigner := range filteredAllowedSigners {
+	for _, allowedSigner := range candidateSigners {
 		slog.Debug("Checking signature",
 			slog.String("identity", identity),
 			slog.Any("principals", allowedSigner.Principals))
