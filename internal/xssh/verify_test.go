@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fionn/commit-signature-verifier/service/xssh"
+	"github.com/fionn/commit-signature-verifier/internal/xssh"
 )
 
 var message = []byte(`tree bfdc48a26bb78e5b4f0798932f4d3460b1f9132e

@@ -10,7 +10,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/fionn/commit-signature-verifier/service/xssh"
+	"github.com/fionn/commit-signature-verifier/internal/xssh"
 )
 
 // Secret is a secret array of bytes.

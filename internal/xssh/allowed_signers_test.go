@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	xssh "github.com/fionn/commit-signature-verifier/service/xssh"
+	xssh "github.com/fionn/commit-signature-verifier/internal/xssh"
 )
 
 // TestParseAllowedSigner is a table-driven test that asserts that the parser

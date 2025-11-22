@@ -8,8 +8,8 @@ import (
 
 	"github.com/google/go-github/v75/github"
 
+	"github.com/fionn/commit-signature-verifier/internal/xssh"
 	"github.com/fionn/commit-signature-verifier/service"
-	"github.com/fionn/commit-signature-verifier/service/xssh"
 )
 
 func populateAllowedSigners(t *testing.T) ([]xssh.AllowedSigner, error) {

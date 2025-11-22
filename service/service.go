@@ -20,8 +20,8 @@ import (
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/google/go-github/v75/github"
 
-	"github.com/fionn/commit-signature-verifier/service/configuration"
-	"github.com/fionn/commit-signature-verifier/service/xssh"
+	"github.com/fionn/commit-signature-verifier/internal/configuration"
+	"github.com/fionn/commit-signature-verifier/internal/xssh"
 )
 
 // Service provides the GitHub client, signature configuration and methods to
