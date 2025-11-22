@@ -49,8 +49,7 @@ func VerifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) (o
 	// https://github.blog/changelog/2024-11-12-persistent-commit-signature-verification-now-in-public-preview/
 	timestamp := *commit.Committer.Date.GetTime()
 
-	err := xssh.Verify(message, signature, signerIdentity, allowedSigners, "git", timestamp)
-	if err != nil {
+	if err := xssh.Verify(message, signature, signerIdentity, allowedSigners, "git", timestamp); err != nil {
 		description = fmt.Sprintf("Commit %s has bad signature: %s.", (*commit.SHA)[:7], err.Error())
 		slog.Info("Commit has bad signature",
 			slog.String("commit", *commit.SHA), slog.String("error", err.Error()))
