@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log/slog"
-	"path/filepath"
+	"path"
 	"slices"
 	"strings"
 	"time"
@@ -83,7 +83,7 @@ func patternMatch(patterns []string, identity string) (matched bool) {
 	for _, pattern := range patterns {
 		pattern, negate := strings.CutPrefix(pattern, "!")
 
-		matched, err := filepath.Match(pattern, identity)
+		matched, err := path.Match(pattern, identity)
 		// Bail if we can't understand the pattern or if it contains escape
 		// sequences SSH doesn't support.
 		if err != nil || strings.ContainsAny(pattern, "[\\") {
