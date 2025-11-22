@@ -146,7 +146,9 @@ func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {
 			slog.String("repository", *event.Repo.FullName),
 			slog.String("ref", *event.Ref),
 			slog.String("commit", *event.After))
-		if err := s.postPushEventStatus(r.Context(), event); err != nil {
+		ctx := context.WithValue(r.Context(),
+			github.SleepUntilPrimaryRateLimitResetWhenRateLimited, true)
+		if err := s.postPushEventStatus(ctx, event); err != nil {
 			slog.Error("Failed to handle push event", slog.String("error", err.Error()))
 			http.Error(w, "Failed to handle push event", http.StatusInternalServerError)
 		}
