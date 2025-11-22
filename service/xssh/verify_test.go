@@ -28,6 +28,9 @@ func must[T any](x T, err error) T {
 	return x
 }
 
+// TestSSHSignature is a table-driven test that asserts that commit signature
+// verification passes or fails as expected for a variets of commits and
+// signatures.
 func TestSSHSignature(t *testing.T) {
 	timestamp := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	namespace := "git"

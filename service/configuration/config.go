@@ -1,3 +1,6 @@
+// Package configuration is a helper package to encapsulate the work of getting
+// configuration values and bundling them into a form that we can expose to the
+// service.
 package configuration
 
 import (
@@ -10,12 +13,15 @@ import (
 	"github.com/fionn/commit-signature-verifier/service/xssh"
 )
 
+// Secret is a secret array of bytes.
 type Secret []byte
 
+// LogValue implements slog.LogValuer and redacts the value in structured logs.
 func (Secret) LogValue() slog.Value {
 	return slog.StringValue("[redacted]")
 }
 
+// Configuration bundles all the parameters needed to execute the program.
 type Configuration struct {
 	InstallationID     int64
 	AppID              int64
@@ -24,6 +30,8 @@ type Configuration struct {
 	AllowedSignersPath string
 }
 
+// FromEnv is a Configuration constructor that pulls configuration values from
+// environment variables.
 func FromEnv() (*Configuration, error) {
 	installationIDStr, ok := os.LookupEnv("INSTALLATION_ID")
 	if !ok {
@@ -69,6 +77,8 @@ func FromEnv() (*Configuration, error) {
 	}, nil
 }
 
+// AllowedSignersFromFile is a helper that takes a file and returns a parsed
+// list of xssh.AllowedSigners from it.
 func AllowedSignersFromFile(path string) (allowedSigners []xssh.AllowedSigner, err error) {
 	slog.Info("Loading allowed signers from file", slog.String("path", path))
 	f, err := os.Open(path)

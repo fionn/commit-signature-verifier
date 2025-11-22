@@ -1,3 +1,7 @@
+// Package service defines all the core logic for interacting with GitHub,
+// i.e. listening for commits and responding to them, with a handler that
+// verifies the commit signature, passing off cryptography-related functions to
+// external packages.
 package service
 
 import (
@@ -20,12 +24,16 @@ import (
 	"github.com/fionn/commit-signature-verifier/service/xssh"
 )
 
+// Service provides the GitHub client, signature configuration and methods to
+// handle commit payloads.
 type Service struct {
 	github         *github.Client
 	webhookSecret  configuration.Secret
 	allowedSigners []xssh.AllowedSigner
 }
 
+// VerifyCommit takes a github.Commit and list of allowed signers and verifies
+// the commit signature against that list.
 func VerifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) (ok bool, description string) {
 	if !*commit.Verification.Verified {
 		description = fmt.Sprintf("Commit %s is %s.", (*commit.SHA)[:7], *commit.Verification.Reason)
@@ -166,6 +174,8 @@ func newGitHubClient(appID int64, installationID int64, privateKey []byte) (*git
 	return github.NewClient(&http.Client{Transport: tr}), nil
 }
 
+// Run initialises the service and executes the main event loop, listening for
+// commit payloads.
 func Run() error {
 	config, err := configuration.FromEnv()
 	if err != nil {

@@ -1,3 +1,4 @@
+// main as the entrypoint wraps the service runner and exposes it as a binary.
 package main
 
 import (

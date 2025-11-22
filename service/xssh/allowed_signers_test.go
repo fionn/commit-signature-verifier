@@ -9,7 +9,10 @@ import (
 	xssh "github.com/fionn/commit-signature-verifier/service/xssh"
 )
 
-func TestInput(t *testing.T) {
+// TestParseAllowedSigner is a table-driven test that asserts that the parser
+// interprets raw allowed signer strings as expected and returns the
+// corresponding structured output.
+func TestParseAllowedSigner(t *testing.T) {
 	tests := []struct {
 		name          string
 		allowedSigner string

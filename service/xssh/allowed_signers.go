@@ -1,3 +1,5 @@
+// Package xssh extends the SSH-related x/crypto functionality with functions to
+// parse allowed signers and verify SSH signatures.
 package xssh
 
 import (
@@ -10,6 +12,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+// Options is the full set of options that can be set for an allowed signer.
 type Options struct {
 	CertAuthority bool
 	Namespaces    []string
@@ -17,6 +20,8 @@ type Options struct {
 	ValidAfter    time.Time
 }
 
+// AllowedSigner is an SSH allowed signer, identifying a principal with an SSH
+// public key, constraints on its use and associated metadata.
 type AllowedSigner struct {
 	Principals []string
 	Options    Options
@@ -71,6 +76,8 @@ func parseOptions(options []string) (optionsStruct Options, err error) {
 	return optionsStruct, err
 }
 
+// ParseAllowedSigner takes an allowed signer line as a string and parses it,
+// returning a well-structured *AllowedSigner (or an error).
 func ParseAllowedSigner(in string) (allowedSigner *AllowedSigner, err error) {
 	principalsBytes, authorizedKeyBytes, found := strings.Cut(in, " ")
 	if !found {
@@ -91,6 +98,8 @@ func ParseAllowedSigner(in string) (allowedSigner *AllowedSigner, err error) {
 	return &AllowedSigner{principals, options, publicKey, comment, rest}, err
 }
 
+// ReadAllowedSigners takes an io.Reader and returns a list of allowed signers
+// from it, as parsed by ParseAllowedSigner.
 func ReadAllowedSigners(f io.Reader) (allowedSigners []AllowedSigner, err error) {
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {

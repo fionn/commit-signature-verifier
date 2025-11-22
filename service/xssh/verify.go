@@ -103,6 +103,8 @@ func patternMatch(patterns []string, identity string) (matched bool) {
 	return anyMatched
 }
 
+// VerifySignature verifies an SSH signature over a namespaced message against
+// a given AllowedSigner.
 func VerifySignature(message []byte, signatureBytes []byte, allowedSigner AllowedSigner,
 	namespace string, timestamp time.Time) error {
 	signature, err := sshsig.Unarmor(signatureBytes)

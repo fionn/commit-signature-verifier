@@ -54,6 +54,7 @@ func loadCommit(t *testing.T, path string) (*github.Commit, error) {
 	return commit, err
 }
 
+// /TestCommit tests handling of commit push payloads.
 func TestCommit(t *testing.T) {
 	tests := []struct {
 		name           string
