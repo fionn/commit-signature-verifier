@@ -179,23 +179,17 @@ func newGitHubClient(appID int64, installationID int64, privateKey []byte) (*git
 func Run() error {
 	config, err := configuration.FromEnv()
 	if err != nil {
-		slog.Error("Failed to load configuration",
-			slog.String("error", err.Error()))
-		return err
+		return fmt.Errorf("failed to load configuration: %w", err)
 	}
 
 	allowedSigners, err := configuration.AllowedSignersFromFile(config.AllowedSignersPath)
 	if err != nil {
-		slog.Error("Failed to populate allowed signers",
-			slog.String("error", err.Error()))
-		return err
+		return fmt.Errorf("failed to populate allowed signers: %w", err)
 	}
 
 	githubClient, err := newGitHubClient(config.AppID, config.InstallationID, config.PrivateKey)
 	if err != nil {
-		slog.Error("Failed to create GitHub client",
-			slog.String("error", err.Error()))
-		return err
+		return fmt.Errorf("failed to create GitHub client: %w", err)
 	}
 
 	service := Service{
