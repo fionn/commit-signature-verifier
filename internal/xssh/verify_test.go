@@ -1,6 +1,7 @@
 package xssh_test
 
 import (
+	_ "embed"
 	"errors"
 	"testing"
 	"time"
@@ -8,18 +9,11 @@ import (
 	"github.com/fionn/commit-signature-verifier/internal/xssh"
 )
 
-var message = []byte(`tree bfdc48a26bb78e5b4f0798932f4d3460b1f9132e
-author Fionn Fitzmaurice <git@fionn.computer> 1757763274 +0800
-committer Fionn Fitzmaurice <git@fionn.computer> 1757764182 +0800
+//go:embed test_data/message.txt
+var message []byte
 
-initial commit
-`)
-var signature = []byte(`-----BEGIN SSH SIGNATURE-----
-U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgtuSnQvCqpX/DrAAZX1vCJHoWkc
-L/kO2IEAoUtnG9pKkAAAADZ2l0AAAAAAAAAAZzaGE1MTIAAABTAAAAC3NzaC1lZDI1NTE5
-AAAAQARrCFIKkhr5LW7pPOhfyLpbQiYWBvo22/B3GB0ZjhPW33Mtv1AWV/ffk70NC9cvN/
-lvGzWXH8/iVyL2DKMUDwU=
------END SSH SIGNATURE-----`)
+//go:embed test_data/signature.txt
+var signature []byte
 
 func must[T any](x T, err error) T {
 	if err != nil {
