@@ -98,7 +98,7 @@ func ParseAllowedSigner(in string) (allowedSigner *AllowedSigner, err error) {
 	return &AllowedSigner{principals, options, publicKey, comment, rest}, err
 }
 
-// ReadAllowedSigners takes an io.Reader and returns a list of allowed signers
+// ReadAllowedSigners takes an [io.Reader] and returns a list of allowed signers
 // from it, as parsed by ParseAllowedSigner.
 func ReadAllowedSigners(f io.Reader) (allowedSigners []AllowedSigner, err error) {
 	scanner := bufio.NewScanner(f)

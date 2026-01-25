@@ -16,7 +16,8 @@ import (
 // Secret is a secret array of bytes.
 type Secret []byte
 
-// LogValue implements slog.LogValuer and redacts the value in structured logs.
+// LogValue implements [slog.LogValuer] and redacts the value in structured
+// logs.
 func (Secret) LogValue() slog.Value {
 	return slog.StringValue("[redacted]")
 }
