@@ -2,7 +2,6 @@ package service_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"testing"
 
@@ -12,46 +11,41 @@ import (
 	"github.com/fionn/commit-signature-verifier/service"
 )
 
-func populateAllowedSigners(t *testing.T) ([]xssh.AllowedSigner, error) {
+func populateAllowedSigners(t *testing.T) []xssh.AllowedSigner {
 	t.Helper()
 	allowedSigner, err := xssh.ParseAllowedSigner(`git@fionn.computer namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILbkp0LwqqV/w6wAGV9bwiR6FpHC/5DtiBAKFLZxvaSp fionn@lotus`)
 	if err != nil {
-		err = fmt.Errorf("failed to parse allowed signer: %w", err)
-		t.Error(err.Error())
-		return nil, err
+		t.Fatalf("failed to parse allowed signer: %s", err)
 	}
-	return []xssh.AllowedSigner{*allowedSigner}, nil
+	return []xssh.AllowedSigner{*allowedSigner}
 }
 
-func loadCommit(t *testing.T, path string) (*github.Commit, error) {
+func loadCommit(t *testing.T, path string) *github.Commit {
 	t.Helper()
 	dataDirectory := "test_data"
 	root, err := os.OpenRoot(dataDirectory)
 	if err != nil {
-		t.Errorf("Failed to open directory: %s", dataDirectory)
-		return nil, err
+		t.Fatalf("Failed to open directory: %s", dataDirectory)
 	}
 	defer func() {
 		if root.Close() != nil {
-			t.Errorf("Failed to close directory: %s", dataDirectory)
+			t.Fatalf("Failed to close directory: %s", dataDirectory)
 		}
 	}()
 
 	commitJson, err := root.ReadFile(path)
 	if err != nil {
-		t.Errorf("Failed to load commit from path %s: %v", path, err)
-		return nil, err
+		t.Fatalf("Failed to load commit from path %s: %v", path, err)
 	}
 
 	repositoryCommit := new(github.RepositoryCommit)
 	err = json.Unmarshal(commitJson, &repositoryCommit)
 	if err != nil {
-		t.Error("Failed to unmarshal test commit payload")
-		return nil, err
+		t.Fatalf("Failed to unmarshal test commit payload: %s", err)
 	}
 	commit := repositoryCommit.Commit
 	commit.SHA = repositoryCommit.SHA
-	return commit, err
+	return commit
 }
 
 // /TestCommit tests handling of commit push payloads.
@@ -67,14 +61,8 @@ func TestCommit(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			commit, err := loadCommit(t, tt.commitDataFile)
-			if err != nil {
-				t.Fatalf("Could not unmarshal example commit")
-			}
-			allowedSigners, err := populateAllowedSigners(t)
-			if err != nil {
-				t.Fatalf("Could not load allowed signers: %s", err)
-			}
+			commit := loadCommit(t, tt.commitDataFile)
+			allowedSigners := populateAllowedSigners(t)
 			ok, _ := service.VerifyCommit(commit, allowedSigners)
 			if ok != tt.ok {
 				t.Errorf("Expected verification to be %v but got %v instead", tt.ok, ok)
