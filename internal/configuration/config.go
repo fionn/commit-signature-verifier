@@ -48,10 +48,16 @@ func FromEnv() (*Configuration, error) {
 	if !ok {
 		return nil, errors.New("missing PRIVATE_KEY")
 	}
+	if err := os.Unsetenv("PRIVATE_KEY"); err != nil {
+		return nil, fmt.Errorf("failed to unset PRIVATE_KEY: %w", err)
+	}
 
 	webhookSecret, ok := os.LookupEnv("WEBHOOK_SECRET")
 	if !ok {
 		return nil, errors.New("missing WEBHOOK_SECRET")
+	}
+	if err := os.Unsetenv("WEBHOOK_SECRET"); err != nil {
+		return nil, fmt.Errorf("failed to unset WEBHOOK_SECRET: %w", err)
 	}
 
 	allowedSignersPath, ok := os.LookupEnv("SSH_ALLOWED_SIGNERS")
