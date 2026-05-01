@@ -8,7 +8,7 @@ require (
 	github.com/go-chi/httplog/v3 v3.3.0
 	github.com/google/go-github/v75 v75.0.0
 	github.com/hiddeco/sshsig v0.2.0
-	golang.org/x/crypto v0.49.0
+	golang.org/x/crypto v0.50.0
 )
 
 require (
@@ -16,5 +16,5 @@ require (
 	github.com/google/go-github/v84 v84.0.0 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
-	golang.org/x/sys v0.42.0 // indirect
+	golang.org/x/sys v0.43.0 // indirect
 )
