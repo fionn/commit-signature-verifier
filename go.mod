@@ -4,7 +4,7 @@ go 1.25.1
 
 require (
 	github.com/bradleyfalzon/ghinstallation/v2 v2.18.0
-	github.com/go-chi/chi/v5 v5.2.5
+	github.com/go-chi/chi/v5 v5.3.0
 	github.com/go-chi/httplog/v3 v3.3.0
 	github.com/google/go-github/v75 v75.0.0
 	github.com/hiddeco/sshsig v0.2.0
