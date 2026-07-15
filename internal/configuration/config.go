@@ -65,9 +65,9 @@ func FromEnv() (*Configuration, error) {
 		return nil, fmt.Errorf("failed to unset WEBHOOK_SECRET: %w", err)
 	}
 
-	allowedSignersPath, ok := os.LookupEnv("SSH_ALLOWED_SIGNERS")
+	allowedSignersPath, ok := os.LookupEnv("SSH_ALLOWED_SIGNERS_PATH")
 	if !ok {
-		return nil, errors.New("missing SSH_ALLOWED_SIGNERS")
+		return nil, errors.New("missing SSH_ALLOWED_SIGNERS_PATH")
 	}
 
 	installationID, err := strconv.ParseInt(installationIDStr, 10, 64)
