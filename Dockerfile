@@ -17,5 +17,7 @@ ENV port=8080
 ENV ADDRESS=0.0.0.0:$port
 EXPOSE $port
 
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=build /src/bin/commit-signature-verifier /bin/commit-signature-verifier
+
 ENTRYPOINT ["/bin/commit-signature-verifier"]
