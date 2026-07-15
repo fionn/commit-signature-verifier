@@ -3,14 +3,21 @@ version: 2
 updates:
 
 - package-ecosystem: gomod
-  directory: "/"
+  directory: /
   schedule:
     interval: semiannually
   cooldown:
     default-days: 7
 
 - package-ecosystem: github-actions
-  directory: "/"
+  directory: /
+  schedule:
+    interval: semiannually
+  cooldown:
+    default-days: 7
+
+- package-ecosystem:  docker
+  directory: /
   schedule:
     interval: semiannually
   cooldown:
