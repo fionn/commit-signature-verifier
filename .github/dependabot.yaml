@@ -16,7 +16,7 @@ updates:
   cooldown:
     default-days: 7
 
-- package-ecosystem:  docker
+- package-ecosystem: docker
   directory: /
   schedule:
     interval: semiannually
