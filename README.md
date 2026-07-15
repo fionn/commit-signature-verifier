@@ -73,3 +73,17 @@ ssh -R 80:localhost:8080 localhost.run
 ```
 or similar.
 Then add the proxy URL as the webhook URL in the application settings.
+
+## Deploying
+
+### Fly
+
+```
+fly launch --no-deploy
+fly secrets set APP_ID=$APP_ID
+fly secrets set INSTALLATION_ID=$INSTALLATION_ID
+fly secrets set PRIVATE_KEY=$PRIVATE_KEY
+fly secrets set WEBHOOK_SECRET=$WEBHOOK_SECRET
+fly secrets set SSH_ALLOWED_SIGNERS_BASE64=$SSH_ALLOWED_SIGNERS_BASE64
+fly deploy
+```
