@@ -64,3 +64,23 @@ func TestAllowedSignersFromFileNotExist(t *testing.T) {
 		t.Fatalf("Failed to return an error when opening an allowed signers file that doesn't exist")
 	}
 }
+
+// Test parsing allowed signers from base64.
+func TestAllowedSignersFromBase64(t *testing.T) {
+	blob := "Z2l0QGZpb25uLmNvbXB1dGVyIG5hbWVzcGFjZXM9ImdpdCIgc3NoLWVkMjU1MTkgQUFBQUMzTnphQzFsWkRJMU5URTVBQUFBSUxia3AwTHdxcVYvdzZ3QUdWOWJ3aVI2RnBIQy81RHRpQkFLRkxaeHZhU3AgZmlvbm5AbG90dXMK"
+
+	_, err := configuration.AllowedSignersFromBase64(blob)
+	if err != nil {
+		t.Errorf("Failed to decode allowed signers from base64: %s", err)
+	}
+
+	_, err = configuration.AllowedSignersFromBase64("yolo")
+	if err == nil {
+		t.Errorf("Expected error when parsing allowed signers from bad base64 blob")
+	}
+
+	_, err = configuration.AllowedSignersFromBase64("eW9sbwo=")
+	if err == nil {
+		t.Errorf("Expected error when parsing allowed signers from base64 that doesn't encode allowed signers")
+	}
+}

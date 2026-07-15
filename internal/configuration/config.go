@@ -4,6 +4,8 @@
 package configuration
 
 import (
+	"bytes"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -65,11 +67,7 @@ func FromEnv() (*Configuration, error) {
 		return nil, fmt.Errorf("failed to unset WEBHOOK_SECRET: %w", err)
 	}
 
-	allowedSignersPath, ok := os.LookupEnv("SSH_ALLOWED_SIGNERS_PATH")
-	if !ok {
-		return nil, errors.New("missing SSH_ALLOWED_SIGNERS_PATH")
-	}
-	allowedSigners, err := AllowedSignersFromFile(allowedSignersPath)
+	allowedSigners, err := AllowedSignersFromEnv()
 	if err != nil {
 		return nil, fmt.Errorf("failed to set allowed signers: %w", err)
 	}
@@ -96,7 +94,6 @@ func FromEnv() (*Configuration, error) {
 // AllowedSignersFromFile is a helper that takes a file and returns a parsed
 // list of xssh.AllowedSigners from it.
 func AllowedSignersFromFile(path string) (allowedSigners []xssh.AllowedSigner, err error) {
-	slog.Info("Loading allowed signers from file", slog.String("path", path))
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open allowed signers file %s: %w", path, err)
@@ -109,4 +106,29 @@ func AllowedSignersFromFile(path string) (allowedSigners []xssh.AllowedSigner, e
 	}()
 
 	return xssh.ReadAllowedSigners(f)
+}
+
+// AllowedSignersFromBase64 is a helper function that takes a base64 blob and
+// returnes a parsed list of xssh.AllowedSigners from it.
+func AllowedSignersFromBase64(blob string) (allowedSigners []xssh.AllowedSigner, err error) {
+	return xssh.ReadAllowedSigners(base64.NewDecoder(base64.StdEncoding, bytes.NewReader([]byte(blob))))
+}
+
+// AllowedSignersFromEnv determines from available environment variables what
+// allowed signer configuration is available and parses it, returning a list of
+// xssh.AllowedSigners from it.
+func AllowedSignersFromEnv() (allowedSigners []xssh.AllowedSigner, err error) {
+	allowedSignersPath, ok := os.LookupEnv("SSH_ALLOWED_SIGNERS_PATH")
+	if ok {
+		slog.Info("Loading allowed signers from file", slog.String("path", allowedSignersPath))
+		return AllowedSignersFromFile(allowedSignersPath)
+	}
+
+	allowedSignersBase64, ok := os.LookupEnv("SSH_ALLOWED_SIGNERS_BASE64")
+	if ok {
+		slog.Info("Loading allowed signers from base64")
+		return AllowedSignersFromBase64(allowedSignersBase64)
+	}
+
+	return nil, errors.New("missing one of SSH_ALLOWED_SIGNERS_PATH or SSH_ALLOWED_SIGNERS_BASE64")
 }

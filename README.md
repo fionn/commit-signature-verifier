@@ -29,8 +29,10 @@ We expect the following environment variables to be set:
   * `INSTALLATION_ID`, the GitHub app installation ID,
   * `PRIVATE_KEY`, the GitHub app private key,
   * `WEBHOOK_SECRET`, the secret used to validate webhook payloads,
-* and for the rest:
-  * `SSH_ALLOWED_SIGNERS_PATH`, the path to the SSH allowed signers file,
+* for verifying signatures, one of:
+  * `SSH_ALLOWED_SIGNERS_PATH`, the path to the SSH allowed signers file, or
+  * `SSH_ALLOWED_SIGNERS_BASE64`, the base64-encoded contents of an allowed signers file
+* and for the server:
   * `ADDRESS`, the address to listen on (optional and defaults to `localhost:8080`).
 
 ### Compilation
