@@ -30,7 +30,7 @@ jobs:
       - name: Lint Go
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.5.0
+          version: v2.12.2
 
       - name: Check formatting
         run: test -z "$(gofmt -l .)"
