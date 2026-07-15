@@ -38,6 +38,11 @@ jobs:
       - name: Check dependency tidiness
         run: go mod tidy -diff
 
+      - name: Lint container file
+        uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: Dockerfile
+
   test:
 
     name: Test

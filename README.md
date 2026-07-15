@@ -47,6 +47,14 @@ go run cmd/main.go
 ./bin/commit-signature-verifier
 ```
 
+Or,
+
+```shell
+podman build -t commit-signature-verifier .
+podman run -e=INSTALLATION_ID -e=APP_ID -e=PRIVATE_KEY -e=WEBHOOK_SECRET -e=SSH_ALLOWED_SIGNERS --mount=type=bind,src=$(pwd)/$SSH_ALLOWED_SIGNERS,dst=/$SSH_ALLOWED_SIGNERS,ro=true -it -p 8080:8080 commit-signature-verifier
+```
+to run in a container.
+
 ## Testing
 
 ### Unit Tests
