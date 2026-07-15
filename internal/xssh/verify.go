@@ -116,7 +116,7 @@ func VerifySignature(message []byte, signatureBytes []byte, allowedSigner Allowe
 		"Loaded signature",
 		slog.String("signature", string(signatureBytes)),
 		slog.String("format", signature.Signature.Format),
-		slog.String("hashAlgorithm", signature.HashAlgorithm.String()),
+		slog.String("hash_algorithm", signature.HashAlgorithm.String()),
 		slog.String("namespace", signature.Namespace),
 	)
 	slog.Debug("Verifying message",
