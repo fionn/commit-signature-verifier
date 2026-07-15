@@ -71,14 +71,15 @@ func VerifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) (o
 
 func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (*github.RepoStatus, error) {
 	if strings.HasPrefix(*event.Ref, "refs/tags/") {
-		slog.Debug("Received tag so skipping status", slog.String("tag", *event.Ref))
+		slog.DebugContext(ctx, "Received tag so skipping status", slog.String("tag", *event.Ref))
 		return nil, nil
 	}
 
 	// Push events can include things like branch deletion, which aren't
 	// relevant for us.
 	if *event.After == strings.Repeat("0", 40) && *event.Deleted {
-		slog.Debug("Received deletion event so skipping status", slog.String("ref", *event.Ref))
+		slog.DebugContext(ctx, "Received deletion event so skipping status",
+			slog.String("ref", *event.Ref))
 		return nil, nil
 	}
 
@@ -94,7 +95,7 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (
 	if err != nil {
 		state := "error"
 		description := fmt.Sprintf("Failed to get commit %s.", *event.After)
-		slog.Error("Failed to get commit",
+		slog.ErrorContext(ctx, "Failed to get commit",
 			slog.String("commit", *event.After), slog.String("error", err.Error()))
 		return &github.RepoStatus{State: &state, Description: &description, Context: &context}, nil
 	}
@@ -116,7 +117,7 @@ func (s Service) postPushEventStatus(ctx context.Context, event *github.PushEven
 		return fmt.Errorf("failed to create commit status: %w", err)
 	}
 	if status == nil {
-		slog.Debug("No status created for event")
+		slog.DebugContext(ctx, "No status created for event")
 		return nil
 	}
 	_, _, err = s.github.Repositories.CreateStatus(
@@ -133,34 +134,37 @@ func (s Service) postPushEventStatus(ctx context.Context, event *github.PushEven
 }
 
 func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	payload, err := github.ValidatePayload(r, s.webhookSecret)
 	if err != nil {
-		slog.Info("Failed to validate payload", slog.String("error", err.Error()))
+		slog.InfoContext(ctx, "Failed to validate payload", slog.String("error", err.Error()))
 		http.Error(w, "Failed to validate payload", http.StatusForbidden)
 		return
 	}
 
 	event, err := github.ParseWebHook(github.WebHookType(r), payload)
 	if err != nil {
-		slog.Error("Failed to parse payload", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "Failed to parse payload", slog.String("error", err.Error()))
 		http.Error(w, "Failed to parse payload", http.StatusBadRequest)
 		return
 	}
 
 	switch event := event.(type) {
 	case *github.PushEvent:
-		slog.Info("Received push event",
+		slog.InfoContext(ctx, "Received push event",
 			slog.String("repository", *event.Repo.FullName),
 			slog.String("ref", *event.Ref),
 			slog.String("commit", *event.After))
-		ctx := context.WithValue(r.Context(),
+		ctx = context.WithValue(ctx,
 			github.SleepUntilPrimaryRateLimitResetWhenRateLimited, true)
 		if err := s.postPushEventStatus(ctx, event); err != nil {
-			slog.Error("Failed to handle push event", slog.String("error", err.Error()))
+			slog.ErrorContext(ctx, "Failed to handle push event",
+				slog.String("error", err.Error()))
 			http.Error(w, "Failed to handle push event", http.StatusInternalServerError)
 		}
 	default:
-		slog.Warn("Received webhook for unexpected event", slog.Any("event", event))
+		slog.WarnContext(ctx, "Received webhook for unexpected event", slog.Any("event", event))
 		http.Error(w, "Received webhook for unexpected event", http.StatusBadRequest)
 	}
 }
