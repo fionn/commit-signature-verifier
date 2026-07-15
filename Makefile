@@ -26,4 +26,4 @@ lint:
 
 .PHONY: clean
 clean:
-	@rm -r bin coverage.out
+	@rm -rf bin coverage.out
