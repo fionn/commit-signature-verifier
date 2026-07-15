@@ -1,6 +1,6 @@
 module github.com/fionn/commit-signature-verifier
 
-go 1.25.1
+go 1.26.5
 
 require (
 	github.com/bradleyfalzon/ghinstallation/v2 v2.19.0
