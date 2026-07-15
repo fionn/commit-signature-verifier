@@ -60,12 +60,16 @@ func VerifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) (o
 	if err := xssh.Verify(message, signature, signerIdentity, allowedSigners, "git", timestamp); err != nil {
 		description = fmt.Sprintf("Commit %s has bad signature: %s.", (*commit.SHA)[:7], err.Error())
 		slog.Info("Commit has bad signature",
-			slog.String("commit", *commit.SHA), slog.String("error", err.Error()))
+			slog.String("commit", *commit.SHA),
+			slog.String("identity", signerIdentity),
+			slog.String("error", err.Error()))
 		return false, description
 	}
 
 	description = fmt.Sprintf("Commit %s has good signature.", (*commit.SHA)[:7])
-	slog.Info("Commit has good signature", slog.String("commit", *commit.SHA))
+	slog.Info("Commit has good signature",
+		slog.String("identity", signerIdentity),
+		slog.String("commit", *commit.SHA))
 	return true, description
 }
 
