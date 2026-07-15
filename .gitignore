@@ -2,4 +2,4 @@ bin/
 coverage.out
 *.pem
 .env
-ssh_allowed_signers
+*allowed_signers
