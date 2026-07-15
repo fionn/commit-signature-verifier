@@ -14,20 +14,31 @@ import (
 
 // Options is the full set of options that can be set for an allowed signer.
 type Options struct {
+	// CertAuthority indicates if the key is a CA.
 	CertAuthority bool
-	Namespaces    []string
-	ValidBefore   time.Time
-	ValidAfter    time.Time
+	// Namespaces is a pattern-list of namespaces accepted for this key.
+	Namespaces []string
+	// ValidBefore indicates that the key is valid for use at or before this
+	// time.
+	ValidBefore time.Time
+	// ValidAfter indicates that the key is valid for use at or after this time.
+	ValidAfter time.Time
 }
 
 // AllowedSigner is an SSH allowed signer, identifying a principal with an SSH
 // public key, constraints on its use and associated metadata.
 type AllowedSigner struct {
+	// Principals is a list of user@domain identity patterns accepted for
+	// signing.
 	Principals []string
-	Options    Options
-	PublicKey  ssh.PublicKey
-	Comment    string
-	Rest       []byte
+	// Options is the full set of options that can be set.
+	Options Options
+	// PublicKey is the SSH public key.
+	PublicKey ssh.PublicKey
+	// Comment is an arbitrary comment string.
+	Comment string
+	// Rest is unparsed miscellaneous data from ssh.ParseAuthorizedKey.
+	Rest []byte
 }
 
 func parseTimestamp(timestamp string) (time.Time, error) {

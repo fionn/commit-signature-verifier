@@ -13,7 +13,7 @@ import (
 	"github.com/fionn/commit-signature-verifier/internal/xssh"
 )
 
-// Secret is a secret array of bytes.
+// Secret is a secret slice of bytes.
 type Secret []byte
 
 // LogValue implements [slog.LogValuer] and redacts the value in structured
@@ -24,10 +24,15 @@ func (Secret) LogValue() slog.Value {
 
 // Configuration bundles all the parameters needed to execute the program.
 type Configuration struct {
-	InstallationID     int64
-	AppID              int64
-	PrivateKey         Secret
-	WebhookSecret      Secret
+	// InstallationID is the GitHub application installation ID.
+	InstallationID int64
+	// AppID is the GitHub application ID.
+	AppID int64
+	// PrivateKey is the GitHub application private key.
+	PrivateKey Secret
+	// WebhookSecret is the secret used to validate webhook payloads from Github.
+	WebhookSecret Secret
+	// AllowedSignersPath is the path to the SSH allowed signers file.
 	AllowedSignersPath string
 }
 
