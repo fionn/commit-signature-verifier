@@ -33,7 +33,7 @@ type Configuration struct {
 	// WebhookSecret is the secret used to validate webhook payloads from Github.
 	WebhookSecret Secret
 	// AllowedSignersPath is the path to the SSH allowed signers file.
-	AllowedSignersPath string
+	AllowedSigners []xssh.AllowedSigner
 }
 
 // FromEnv is a Configuration constructor that pulls configuration values from
@@ -69,6 +69,10 @@ func FromEnv() (*Configuration, error) {
 	if !ok {
 		return nil, errors.New("missing SSH_ALLOWED_SIGNERS_PATH")
 	}
+	allowedSigners, err := AllowedSignersFromFile(allowedSignersPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set allowed signers: %w", err)
+	}
 
 	installationID, err := strconv.ParseInt(installationIDStr, 10, 64)
 	if err != nil {
@@ -81,11 +85,11 @@ func FromEnv() (*Configuration, error) {
 	}
 
 	return &Configuration{
-		InstallationID:     installationID,
-		AppID:              appID,
-		PrivateKey:         Secret([]byte(privateKey)),
-		WebhookSecret:      Secret([]byte(webhookSecret)),
-		AllowedSignersPath: allowedSignersPath,
+		InstallationID: installationID,
+		AppID:          appID,
+		PrivateKey:     Secret([]byte(privateKey)),
+		WebhookSecret:  Secret([]byte(webhookSecret)),
+		AllowedSigners: allowedSigners,
 	}, nil
 }
 
@@ -99,7 +103,8 @@ func AllowedSignersFromFile(path string) (allowedSigners []xssh.AllowedSigner, e
 	}
 	defer func() {
 		if err := f.Close(); err != nil {
-			panic(err)
+			slog.Error("Failed to close allowed signers file",
+				slog.String("path", path), slog.String("error", err.Error()))
 		}
 	}()
 

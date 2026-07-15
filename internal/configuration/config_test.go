@@ -23,7 +23,7 @@ func TestFromEnv(t *testing.T) {
 		"APP_ID":                   "456",
 		"PRIVATE_KEY":              "private key",
 		"WEBHOOK_SECRET":           "webhook secret",
-		"SSH_ALLOWED_SIGNERS_PATH": "/path/to/allowed_signers",
+		"SSH_ALLOWED_SIGNERS_PATH": "test_data/test_allowed_signers",
 	}
 
 	for key := range baseEnv {

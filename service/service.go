@@ -182,11 +182,6 @@ func Run() error {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
 
-	allowedSigners, err := configuration.AllowedSignersFromFile(config.AllowedSignersPath)
-	if err != nil {
-		return fmt.Errorf("failed to populate allowed signers: %w", err)
-	}
-
 	githubClient, err := newGitHubClient(config.AppID, config.InstallationID, config.PrivateKey)
 	if err != nil {
 		return fmt.Errorf("failed to create GitHub client: %w", err)
@@ -195,7 +190,7 @@ func Run() error {
 	service := Service{
 		github:         githubClient,
 		webhookSecret:  config.WebhookSecret,
-		allowedSigners: allowedSigners,
+		allowedSigners: config.AllowedSigners,
 	}
 
 	r := chi.NewRouter()
