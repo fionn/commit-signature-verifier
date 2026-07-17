@@ -52,7 +52,7 @@ go run cmd/main.go
 Or,
 
 ```shell
-podman build -t commit-signature-verifier .
+make image
 podman run -e=INSTALLATION_ID -e=APP_ID -e=PRIVATE_KEY -e=WEBHOOK_SECRET -e=SSH_ALLOWED_SIGNERS_PATH --mount=type=bind,src=$(pwd)/$SSH_ALLOWED_SIGNERS_PATH,dst=/$SSH_ALLOWED_SIGNERS_PATH,ro=true -it -p 8080:8080 commit-signature-verifier
 ```
 to run in a container.

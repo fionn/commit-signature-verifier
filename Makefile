@@ -9,6 +9,12 @@ build: bin/commit-signature-verifier
 bin/commit-signature-verifier: $(SRC) go.mod go.sum
 	go build -v -trimpath -ldflags="-s -w" -o $@ github.com/fionn/commit-signature-verifier/cmd
 
+.PHONY: image
+image: $(SRC) go.mod go.sum Dockerfile
+	podman build \
+	--source-date-epoch=${SOURCE_DATE_EPOCH} --rewrite-timestamp \
+	-t commit-signature-verifier .
+
 .PHONY: test
 test:
 	@go test -v ./...
