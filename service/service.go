@@ -35,12 +35,12 @@ type GitHub struct {
 // handle commit payloads.
 type Service struct {
 	github         GitHub
-	allowedSigners []xssh.AllowedSigner
+	AllowedSigners []xssh.AllowedSigner
 }
 
 // VerifyCommit takes a github.Commit and list of allowed signers and verifies
 // the commit signature against that list.
-func VerifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) (ok bool, description string) {
+func (s Service) VerifyCommit(commit *github.Commit) (ok bool, description string) {
 	if !*commit.Verification.Verified {
 		description = fmt.Sprintf("Commit %s is %s.", (*commit.SHA)[:7], *commit.Verification.Reason)
 		slog.Info("Commit unverified on GitHub",
@@ -63,7 +63,7 @@ func VerifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) (o
 	// https://github.blog/changelog/2024-11-12-persistent-commit-signature-verification-now-in-public-preview/
 	timestamp := *commit.Committer.Date.GetTime()
 
-	if err := xssh.Verify(message, signature, signerIdentity, allowedSigners, "git", timestamp); err != nil {
+	if err := xssh.Verify(message, signature, signerIdentity, s.AllowedSigners, "git", timestamp); err != nil {
 		description = fmt.Sprintf("Commit %s has bad signature: %s.", (*commit.SHA)[:7], err.Error())
 		slog.Info("Commit has bad signature",
 			slog.String("commit", *commit.SHA),
@@ -121,7 +121,7 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (
 	commit.SHA = repositoryCommit.SHA
 
 	state := "failure"
-	ok, description := VerifyCommit(commit, s.allowedSigners)
+	ok, description := s.VerifyCommit(commit)
 	if ok {
 		state = "success"
 	}
@@ -228,7 +228,7 @@ func Run() error {
 
 	service := Service{
 		github:         GitHub{githubClient, config.WebhookSecret},
-		allowedSigners: config.AllowedSigners,
+		AllowedSigners: config.AllowedSigners,
 	}
 
 	r := chi.NewRouter()

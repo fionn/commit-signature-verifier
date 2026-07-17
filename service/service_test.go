@@ -63,7 +63,8 @@ func TestCommit(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			commit := loadCommit(t, tt.commitDataFile)
 			allowedSigners := populateAllowedSigners(t)
-			ok, _ := service.VerifyCommit(commit, allowedSigners)
+			s := service.Service{AllowedSigners: allowedSigners}
+			ok, _ := s.VerifyCommit(commit)
 			if ok != tt.ok {
 				t.Errorf("Expected verification to be %v but got %v instead", tt.ok, ok)
 			}
