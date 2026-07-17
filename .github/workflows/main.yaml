@@ -35,13 +35,44 @@ jobs:
       - name: Check formatting
         run: test -z "$(gofmt -l .)"
 
-      - name: Check dependency tidiness
-        run: go mod tidy -diff
-
       - name: Lint container file
         uses: hadolint/hadolint-action@v3.3.0
         with:
           dockerfile: Dockerfile
+
+  check_dependencies:
+
+    name: Check dependencies
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: read
+      checks: write
+      security-events: write
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Check dependency tidiness
+        run: go mod tidy -diff
+
+      - name: Check for vulnerable dependency use
+        run: go tool govulncheck -format sarif ./... | jq "(.runs[].tool.driver.rules[]?.properties.tags)? |= unique" > govulncheck.sarif
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v4.36.2
+        with:
+          sarif_file: govulncheck.sarif
+          category: govulncheck
 
   test:
 
