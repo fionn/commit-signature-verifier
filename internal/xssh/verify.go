@@ -13,52 +13,6 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-// Given a message, a signature over it, a signer identity, an allowed signers
-// list, a namespace and a timestamp, find the allowed signers entries that
-// correspond to the signing identity and then, for each entry, verify the
-// signature until we get a successful verification or run out of entries.
-// Verification checks:
-//   - that the signature is correct,
-//   - that the signature namespace matches both the given namespace and also
-//     a namespace permitted by the allowed signers entry, if present,
-//   - that the given timestamp is within the validity window, if at least one
-//     of verify-before or verify-after are present.
-func Verify(message []byte, signature []byte, identity string, allowedSigners []AllowedSigner,
-	namespace string, timestamp time.Time) (err error) {
-	// First narrow down our allowed signers list to include only those elements
-	// that match the given principal. We have to check this now, since the
-	// underlying verification function doesn't have a concept of principals or
-	// an identity, so we are responsible for finding public keys that are
-	// appropriate to check against.
-	candidateSigners := slices.DeleteFunc(allowedSigners, func(s AllowedSigner) bool {
-		return !patternMatch(s.Principals, identity)
-	})
-
-	if len(candidateSigners) == 0 {
-		slog.Debug("Missing public key", slog.String("identity", identity))
-		return fmt.Errorf("missing public key for identity %s", identity)
-	}
-
-	for _, allowedSigner := range candidateSigners {
-		slog.Debug("Checking signature",
-			slog.String("identity", identity),
-			slog.Any("principals", allowedSigner.Principals))
-		err = VerifySignature(message, signature, allowedSigner, namespace, timestamp)
-		if err == nil {
-			// We got a good signature, no need to check any other allowed
-			// signers.
-			break
-		}
-		// We got a bad signature, so keep checking in case another allowed
-		// signer entry for this identity will match.
-		slog.Debug("Got bad signature",
-			slog.String("identity", identity),
-			slog.Any("principals", allowedSigner.Principals))
-	}
-
-	return err
-}
-
 // patternMatch takes a list of patterns and a string and does a glob-like
 // match for the string against each pattern. From ssh_config(5),
 //
@@ -103,9 +57,9 @@ func patternMatch(patterns []string, identity string) (matched bool) {
 	return anyMatched
 }
 
-// VerifySignature verifies an SSH signature over a namespaced message against
+// verifySignature verifies an SSH signature over a namespaced message against
 // a given AllowedSigner.
-func VerifySignature(message []byte, signatureBytes []byte, allowedSigner AllowedSigner,
+func verifySignature(message []byte, signatureBytes []byte, allowedSigner AllowedSigner,
 	namespace string, timestamp time.Time) error {
 	signature, err := sshsig.Unarmor(signatureBytes)
 	if err != nil {
@@ -147,4 +101,50 @@ func VerifySignature(message []byte, signatureBytes []byte, allowedSigner Allowe
 		signature.HashAlgorithm,
 		namespace,
 	)
+}
+
+// Given a message, a signature over it, a signer identity, an allowed signers
+// list, a namespace and a timestamp, find the allowed signers entries that
+// correspond to the signing identity and then, for each entry, verify the
+// signature until we get a successful verification or run out of entries.
+// Verification checks:
+//   - that the signature is correct,
+//   - that the signature namespace matches both the given namespace and also
+//     a namespace permitted by the allowed signers entry, if present,
+//   - that the given timestamp is within the validity window, if at least one
+//     of verify-before or verify-after are present.
+func Verify(message []byte, signature []byte, identity string, allowedSigners []AllowedSigner,
+	namespace string, timestamp time.Time) (err error) {
+	// First narrow down our allowed signers list to include only those elements
+	// that match the given principal. We have to check this now, since the
+	// underlying verification function doesn't have a concept of principals or
+	// an identity, so we are responsible for finding public keys that are
+	// appropriate to check against.
+	candidateSigners := slices.DeleteFunc(allowedSigners, func(s AllowedSigner) bool {
+		return !patternMatch(s.Principals, identity)
+	})
+
+	if len(candidateSigners) == 0 {
+		slog.Debug("Missing public key", slog.String("identity", identity))
+		return fmt.Errorf("missing public key for identity %s", identity)
+	}
+
+	for _, allowedSigner := range candidateSigners {
+		slog.Debug("Checking signature",
+			slog.String("identity", identity),
+			slog.Any("principals", allowedSigner.Principals))
+		err = verifySignature(message, signature, allowedSigner, namespace, timestamp)
+		if err == nil {
+			// We got a good signature, no need to check any other allowed
+			// signers.
+			break
+		}
+		// We got a bad signature, so keep checking in case another allowed
+		// signer entry for this identity will match.
+		slog.Debug("Got bad signature",
+			slog.String("identity", identity),
+			slog.Any("principals", allowedSigner.Principals))
+	}
+
+	return err
 }
