@@ -142,7 +142,7 @@ func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {
 
 	payload, err := github.ValidatePayload(r, s.webhookSecret)
 	if err != nil {
-		slog.InfoContext(ctx, "Failed to validate payload", slog.String("error", err.Error()))
+		slog.WarnContext(ctx, "Failed to validate payload", slog.String("error", err.Error()))
 		http.Error(w, "Failed to validate payload", http.StatusForbidden)
 		return
 	}

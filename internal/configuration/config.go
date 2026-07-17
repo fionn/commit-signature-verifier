@@ -45,10 +45,18 @@ func FromEnv() (*Configuration, error) {
 	if !ok {
 		return nil, errors.New("missing INSTALLATION_ID")
 	}
+	installationID, err := strconv.ParseInt(installationIDStr, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("bad INSTALLATION_ID %s: %w", installationIDStr, err)
+	}
 
 	appIDStr, ok := os.LookupEnv("APP_ID")
 	if !ok {
 		return nil, errors.New("missing APP_ID")
+	}
+	appID, err := strconv.ParseInt(appIDStr, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("bad APP ID %s: %w", appIDStr, err)
 	}
 
 	privateKey, ok := os.LookupEnv("PRIVATE_KEY")
@@ -71,16 +79,7 @@ func FromEnv() (*Configuration, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to set allowed signers: %w", err)
 	}
-
-	installationID, err := strconv.ParseInt(installationIDStr, 10, 64)
-	if err != nil {
-		return nil, fmt.Errorf("bad INSTALLATION_ID %s: %w", installationIDStr, err)
-	}
-
-	appID, err := strconv.ParseInt(appIDStr, 10, 64)
-	if err != nil {
-		return nil, fmt.Errorf("bad APP ID %s: %w", appIDStr, err)
-	}
+	slog.Debug("Loaded allowed signers", slog.Int("count", len(allowedSigners)))
 
 	return &Configuration{
 		InstallationID: installationID,
@@ -120,13 +119,13 @@ func AllowedSignersFromBase64(blob string) (allowedSigners []xssh.AllowedSigner,
 func AllowedSignersFromEnv() (allowedSigners []xssh.AllowedSigner, err error) {
 	allowedSignersPath, ok := os.LookupEnv("SSH_ALLOWED_SIGNERS_PATH")
 	if ok {
-		slog.Info("Loading allowed signers from file", slog.String("path", allowedSignersPath))
+		slog.Debug("Loading allowed signers from file", slog.String("path", allowedSignersPath))
 		return AllowedSignersFromFile(allowedSignersPath)
 	}
 
 	allowedSignersBase64, ok := os.LookupEnv("SSH_ALLOWED_SIGNERS_BASE64")
 	if ok {
-		slog.Info("Loading allowed signers from base64")
+		slog.Debug("Loading allowed signers from base64")
 		return AllowedSignersFromBase64(allowedSignersBase64)
 	}
 
