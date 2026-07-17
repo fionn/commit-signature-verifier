@@ -8,9 +8,13 @@ import (
 	"github.com/fionn/commit-signature-verifier/service"
 )
 
+var version = "dev"
+
 func main() {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr,
 		&slog.HandlerOptions{Level: slog.LevelDebug})))
+
+	slog.Info("Starting", slog.String("version", version))
 
 	err := service.Run()
 	if err != nil {

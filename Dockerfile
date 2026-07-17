@@ -6,8 +6,9 @@ COPY go.mod go.sum ./
 RUN ["go", "mod", "download"]
 
 COPY . .
-RUN ["go", "build", "-v", "-trimpath", "-ldflags=-s -w", "-o", \
-     "bin/commit-signature-verifier", "github.com/fionn/commit-signature-verifier/cmd"]
+ARG VERSION
+RUN go build -v -trimpath -ldflags="-s -w -X main.version=${VERSION}" \
+    -o bin/commit-signature-verifier github.com/fionn/commit-signature-verifier/cmd
 
 FROM scratch
 USER 65534:65534
