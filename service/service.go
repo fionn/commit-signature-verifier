@@ -208,6 +208,7 @@ func Run() error {
 	}))
 	r.Use(middleware.AllowContentType("application/json"))
 	r.Post("/api/github/hook", service.handleWebhook)
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {})
 
 	address, ok := os.LookupEnv("ADDRESS")
 	if !ok {
