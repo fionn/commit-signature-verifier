@@ -187,10 +187,16 @@ func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		ctx = context.WithValue(ctx,
 			github.SleepUntilPrimaryRateLimitResetWhenRateLimited, true)
 
-		if err := s.processPushEvent(ctx, event); err != nil {
+		err := s.processPushEvent(ctx, event)
+		if err != nil {
 			slog.ErrorContext(ctx, "Failed to handle push event",
 				slog.String("error", err.Error()))
 			http.Error(w, "Failed to handle push event", http.StatusInternalServerError)
+		} else {
+			if _, err := w.Write([]byte("Event processed successfully.")); err != nil {
+				slog.ErrorContext(ctx, "Failed to respond to webhook",
+					slog.String("error", err.Error()))
+			}
 		}
 	default:
 		slog.WarnContext(ctx, "Received webhook for unexpected event", slog.Any("event", event))
