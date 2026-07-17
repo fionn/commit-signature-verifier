@@ -79,8 +79,8 @@ func (s Service) VerifyCommit(commit *github.Commit) (ok bool, description strin
 	return true, description
 }
 
-// statusFromEvent takes an event and returns a commit status object suitable
-// for posting.
+// statusFromEvent takes a push event, fetches the underlying ref, sends it to
+// be verified and then returns a commit status object suitable for posting.
 func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (*github.RepoStatus, error) {
 	if strings.HasPrefix(*event.Ref, "refs/tags/") {
 		slog.DebugContext(ctx, "Received tag so skipping status", slog.String("tag", *event.Ref))
