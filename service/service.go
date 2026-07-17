@@ -60,7 +60,6 @@ func (s Service) VerifyCommit(commit *github.Commit) (ok bool, description strin
 	// We do want to allow pushing old commits, however, so we accept this risk,
 	// which is partially mitigated by the above check that GitHub performs,
 	// which is done at time of push.
-	// https://github.blog/changelog/2024-11-12-persistent-commit-signature-verification-now-in-public-preview/
 	timestamp := *commit.Committer.Date.GetTime()
 
 	if err := xssh.Verify(message, signature, signerIdentity, s.AllowedSigners, "git", timestamp); err != nil {
