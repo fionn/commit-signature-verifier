@@ -24,11 +24,17 @@ import (
 	"github.com/fionn/commit-signature-verifier/internal/xssh"
 )
 
+// GitHub encapsulates GitHub-related functionality.
+type GitHub struct {
+	*github.Client
+
+	webhookSecret configuration.Secret
+}
+
 // Service provides the GitHub client, signature configuration and methods to
 // handle commit payloads.
 type Service struct {
-	github         *github.Client
-	webhookSecret  configuration.Secret
+	github         GitHub
 	allowedSigners []xssh.AllowedSigner
 }
 
@@ -73,6 +79,8 @@ func VerifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) (o
 	return true, description
 }
 
+// statusFromEvent takes an event and returns a commit status object suitable
+// for posting.
 func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (*github.RepoStatus, error) {
 	if strings.HasPrefix(*event.Ref, "refs/tags/") {
 		slog.DebugContext(ctx, "Received tag so skipping status", slog.String("tag", *event.Ref))
@@ -101,7 +109,12 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (
 		description := fmt.Sprintf("Failed to get commit %s.", *event.After)
 		slog.ErrorContext(ctx, "Failed to get commit",
 			slog.String("commit", *event.After), slog.String("error", err.Error()))
-		return &github.RepoStatus{State: &state, Description: &description, Context: &context}, nil
+
+		return &github.RepoStatus{
+			State:       &state,
+			Description: &description,
+			Context:     &context,
+		}, nil
 	}
 
 	commit := repositoryCommit.Commit
@@ -112,10 +125,17 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (
 	if ok {
 		state = "success"
 	}
-	return &github.RepoStatus{State: &state, Description: &description, Context: &context}, nil
+
+	return &github.RepoStatus{
+		State:       &state,
+		Description: &description,
+		Context:     &context,
+	}, nil
 }
 
-func (s Service) postPushEventStatus(ctx context.Context, event *github.PushEvent) error {
+// processPushEvent gets the commit signature state for the event and posts it
+// to the commit status, i.e. this is primarily a side-effect function.
+func (s Service) processPushEvent(ctx context.Context, event *github.PushEvent) error {
 	status, err := s.statusFromEvent(ctx, event)
 	if err != nil {
 		return fmt.Errorf("failed to create commit status: %w", err)
@@ -137,10 +157,13 @@ func (s Service) postPushEventStatus(ctx context.Context, event *github.PushEven
 	return nil
 }
 
+// handleWebhook receives webhook events posted to us and kicks off the
+// processing of these events. Its role is to sanity-check the incoming payloads
+// and then, if deemed acceptable, pass the event off to processPushEvent.
 func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	payload, err := github.ValidatePayload(r, s.webhookSecret)
+	payload, err := github.ValidatePayload(r, s.github.webhookSecret)
 	if err != nil {
 		slog.WarnContext(ctx, "Failed to validate payload", slog.String("error", err.Error()))
 		http.Error(w, "Failed to validate payload", http.StatusForbidden)
@@ -160,9 +183,11 @@ func (s Service) handleWebhook(w http.ResponseWriter, r *http.Request) {
 			slog.String("repository", *event.Repo.FullName),
 			slog.String("ref", *event.Ref),
 			slog.String("commit", *event.After))
+
 		ctx = context.WithValue(ctx,
 			github.SleepUntilPrimaryRateLimitResetWhenRateLimited, true)
-		if err := s.postPushEventStatus(ctx, event); err != nil {
+
+		if err := s.processPushEvent(ctx, event); err != nil {
 			slog.ErrorContext(ctx, "Failed to handle push event",
 				slog.String("error", err.Error()))
 			http.Error(w, "Failed to handle push event", http.StatusInternalServerError)
@@ -196,8 +221,7 @@ func Run() error {
 	}
 
 	service := Service{
-		github:         githubClient,
-		webhookSecret:  config.WebhookSecret,
+		github:         GitHub{githubClient, config.WebhookSecret},
 		allowedSigners: config.AllowedSigners,
 	}
 
