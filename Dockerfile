@@ -6,7 +6,6 @@ COPY go.mod go.sum ./
 RUN ["go", "mod", "download"]
 
 COPY . .
-ARG CGO_ENABLED=0
 RUN ["go", "build", "-v", "-trimpath", "-ldflags=-s -w", "-o", \
      "bin/commit-signature-verifier", "github.com/fionn/commit-signature-verifier/cmd"]
 
