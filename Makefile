@@ -35,3 +35,7 @@ lint:
 .PHONY: clean
 clean:
 	@rm -rf bin coverage.out
+
+.PHONY: deploy
+deploy:
+	fly deploy --build-arg "VERSION=${VERSION}"

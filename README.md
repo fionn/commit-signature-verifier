@@ -85,5 +85,5 @@ fly secrets set INSTALLATION_ID=$INSTALLATION_ID
 fly secrets set PRIVATE_KEY=$PRIVATE_KEY
 fly secrets set WEBHOOK_SECRET=$WEBHOOK_SECRET
 fly secrets set SSH_ALLOWED_SIGNERS_BASE64=$SSH_ALLOWED_SIGNERS_BASE64
-fly deploy --build-arg "VERSION=$(git describe --tags --always --dirty)"
+make deploy
 ```
