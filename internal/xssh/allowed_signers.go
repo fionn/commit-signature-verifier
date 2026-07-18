@@ -120,5 +120,6 @@ func ReadAllowedSigners(f io.Reader) (allowedSigners []AllowedSigner, err error)
 		}
 		allowedSigners = append(allowedSigners, *allowedSigner)
 	}
-	return allowedSigners, nil
+
+	return allowedSigners, scanner.Err()
 }
