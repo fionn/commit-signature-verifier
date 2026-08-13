@@ -51,11 +51,11 @@ func (s Service) VerifyCommit(commit *github.Commit) (ok bool, description strin
 	signature := []byte(*commit.Verification.Signature)
 	message := []byte(*commit.Verification.Payload)
 	signerIdentity := *commit.Committer.Email
-	// There's an argument that the only timestamp we know is not forged is
-	// our own, since if a key has a valid-before option specified we have
-	// to assume it's not trustworthy afterwards, at which point an attacker
-	// with access to the assumed compromised key could sign a commit with a
-	// timestamp prior to valid-before, which would pass validation.
+	// There's an argument that the only timestamp we know is not forged is our
+	// own, since if a key has a valid-before option specified we have to assume
+	// it's not trustworthy afterwards, at which point an attacker with access
+	// to the assumed compromised key could sign a commit with a timestamp prior
+	// to valid-before, which would pass validation.
 	//
 	// We do want to allow pushing old commits, however, so we accept this risk,
 	// which is partially mitigated by the above check that GitHub performs,
