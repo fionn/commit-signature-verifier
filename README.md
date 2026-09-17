@@ -61,7 +61,7 @@ to run in a container.
 
 ### Unit Tests
 
-```shell
+```
 make test
 ```
 
