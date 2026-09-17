@@ -80,10 +80,10 @@ func (s Service) VerifyCommit(commit *github.Commit) (ok bool, description strin
 
 // statusFromEvent takes a push event, fetches the underlying ref, sends it to
 // be verified and then returns a commit status object suitable for posting.
-func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (*github.RepoStatus, error) {
+func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) *github.RepoStatus {
 	if strings.HasPrefix(*event.Ref, "refs/tags/") {
 		slog.DebugContext(ctx, "Received tag so skipping status", slog.String("tag", *event.Ref))
-		return nil, nil
+		return nil
 	}
 
 	// Push events can include things like branch deletion, which aren't
@@ -91,7 +91,7 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (
 	if *event.After == strings.Repeat("0", 40) && *event.Deleted {
 		slog.DebugContext(ctx, "Received deletion event so skipping status",
 			slog.String("ref", *event.Ref))
-		return nil, nil
+		return nil
 	}
 
 	context := "commit-signature"
@@ -113,7 +113,7 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (
 			State:       &state,
 			Description: &description,
 			Context:     &context,
-		}, nil
+		}
 	}
 
 	commit := repositoryCommit.Commit
@@ -129,21 +129,18 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) (
 		State:       &state,
 		Description: &description,
 		Context:     &context,
-	}, nil
+	}
 }
 
 // processPushEvent gets the commit signature state for the event and posts it
 // to the commit status, i.e. this is primarily a side-effect function.
 func (s Service) processPushEvent(ctx context.Context, event *github.PushEvent) error {
-	status, err := s.statusFromEvent(ctx, event)
-	if err != nil {
-		return fmt.Errorf("failed to create commit status: %w", err)
-	}
+	status := s.statusFromEvent(ctx, event)
 	if status == nil {
 		slog.DebugContext(ctx, "No status created for event")
 		return nil
 	}
-	_, _, err = s.github.Repositories.CreateStatus(
+	_, _, err := s.github.Repositories.CreateStatus(
 		ctx,
 		*event.Repo.Owner.Name,
 		*event.Repo.Name,
