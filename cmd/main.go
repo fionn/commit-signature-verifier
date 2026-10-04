@@ -16,7 +16,7 @@ func main() {
 
 	slog.Info("Starting", slog.String("version", version))
 
-	err := service.Run()
+	err := service.Run(version)
 	if err != nil {
 		panic(err)
 	}

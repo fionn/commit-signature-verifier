@@ -222,7 +222,7 @@ func newGitHubClient(appID int64, installationID int64, privateKey []byte) (*git
 
 // Run initialises the service and executes the main event loop, listening for
 // commit payloads.
-func Run() error {
+func Run(version string) error {
 	config, err := configuration.FromEnv()
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
@@ -244,6 +244,7 @@ func Run() error {
 		RecoverPanics: true,
 	}))
 	r.Use(middleware.AllowContentType("application/json"))
+	r.Use(middleware.SetHeader("x-version", version))
 	r.Post("/api/github/hook", service.handleWebhook)
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {})
 
