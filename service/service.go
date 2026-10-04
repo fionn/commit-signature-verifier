@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -86,9 +87,19 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) *
 		return nil
 	}
 
+	// We create a commit of zeros based on the object-format inferred from the
+	// size of the hash, so check that it's a reasonable size first. This isn't
+	// "attacker controlled", we receive this from GitHub, so it should be
+	// safe to assume it's always 40 or 64 characters.
+	if !slices.Contains([]int{40, 64}, len(*event.After)) {
+		slog.ErrorContext(ctx, "Received commit hash of unexpected size",
+			slog.String("commit", *event.After))
+		return nil
+	}
+
 	// Push events can include things like branch deletion, which aren't
 	// relevant for us.
-	if *event.After == strings.Repeat("0", 40) && *event.Deleted {
+	if *event.Deleted && *event.After == strings.Repeat("0", len(*event.After)) {
 		slog.DebugContext(ctx, "Received deletion event so skipping status",
 			slog.String("ref", *event.Ref))
 		return nil
