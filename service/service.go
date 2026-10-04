@@ -83,7 +83,7 @@ func (s Service) VerifyCommit(commit *github.Commit) (ok bool, description strin
 // be verified and then returns a commit status object suitable for posting.
 func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) *github.RepoStatus {
 	if strings.HasPrefix(*event.Ref, "refs/tags/") {
-		slog.DebugContext(ctx, "Received tag so skipping status", slog.String("tag", *event.Ref))
+		slog.DebugContext(ctx, "Received tag so skipping status", slog.String("ref", *event.Ref))
 		return nil
 	}
 
