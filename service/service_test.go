@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/google/go-github/v75/github"
+	"github.com/google/go-github/v88/github"
 
 	"github.com/fionn/commit-signature-verifier/internal/xssh"
 	"github.com/fionn/commit-signature-verifier/service"

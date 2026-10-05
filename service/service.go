@@ -19,7 +19,7 @@ import (
 	"github.com/go-chi/httplog/v3"
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
-	"github.com/google/go-github/v75/github"
+	"github.com/google/go-github/v88/github"
 
 	"github.com/fionn/commit-signature-verifier/internal/configuration"
 	"github.com/fionn/commit-signature-verifier/internal/xssh"
@@ -156,7 +156,7 @@ func (s Service) processPushEvent(ctx context.Context, event *github.PushEvent) 
 		*event.Repo.Owner.Name,
 		*event.Repo.Name,
 		*event.After,
-		status,
+		*status,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to post commit status: %w", err)
@@ -217,7 +217,7 @@ func newGitHubClient(appID int64, installationID int64, privateKey []byte) (*git
 		return nil, fmt.Errorf("failed to build transport: %w", err)
 	}
 
-	return github.NewClient(&http.Client{Transport: tr}), nil
+	return github.NewClient(github.WithTransport(tr))
 }
 
 // Run initialises the service and executes the main event loop, listening for
