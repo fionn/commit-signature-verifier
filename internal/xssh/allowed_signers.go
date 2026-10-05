@@ -100,13 +100,9 @@ func ParseAllowedSigner(in string) (allowedSigner *AllowedSigner, err error) {
 		return nil, fmt.Errorf("failed to parse key: %w", err)
 	}
 
-	var principals []string
-	for v := range strings.SplitSeq(principalsBytes, ",") {
-		principals = append(principals, string(v))
-	}
-
 	options, err := parseOptions(optionsStr)
-	return &AllowedSigner{principals, options, publicKey, comment, rest}, err
+	return &AllowedSigner{strings.Split(principalsBytes, ","), options,
+		publicKey, comment, rest}, err
 }
 
 // ReadAllowedSigners takes an [io.Reader] and returns a list of allowed signers
