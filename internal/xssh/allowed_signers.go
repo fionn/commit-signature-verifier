@@ -46,19 +46,20 @@ func parseTimestamp(timestamp string) (time.Time, error) {
 	timestampLength := len(timestamp)
 
 	// We only match against YYYYMMDD[Z] or YYYYMMDDHHMM[SS][Z] as per the spec.
-	if timestampLength != 8 && timestampLength != 12 && timestampLength != 14 {
+	switch timestampLength {
+	case 8, 12, 14:
+		// According to ssh-keygen(1),
+		// > Dates and times will be interpreted in the current system time zone
+		// > unless suffixed with a Z character, which causes them to be
+		// > interpreted in the UTC time zone.
+		// but our timezone is arbitrary, so we don't consider this and will
+		// take all timestamps to be UTC.
+		layout := "20060102150405"[:timestampLength]
+		return time.Parse(layout, timestamp)
+	default:
 		return time.Time{}, fmt.Errorf("timestamp string has unexpected length: %d",
 			timestampLength)
 	}
-
-	// According to ssh-keygen(1),
-	// > Dates and times will be interpreted in the current system time zone
-	// > unless suffixed with a Z character, which causes them to be
-	// > interpreted in the UTC time zone.
-	// but our timezone is arbitrary, so we don't consider this and will take
-	// all timestamps to be UTC.
-	layout := "20060102150405"[:timestampLength]
-	return time.Parse(layout, timestamp)
 }
 
 func parseOptions(options []string) (optionsStruct Options, err error) {
