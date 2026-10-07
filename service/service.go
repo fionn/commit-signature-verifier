@@ -10,7 +10,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"slices"
 	"strings"
 	"time"
 
@@ -91,7 +90,9 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) *
 	// size of the hash, so check that it's a reasonable size first. This isn't
 	// "attacker controlled", we receive this from GitHub, so it should be
 	// safe to assume it's always 40 or 64 characters.
-	if !slices.Contains([]int{40, 64}, len(*event.After)) {
+	switch len(*event.After) {
+	case 40, 64:
+	default:
 		slog.ErrorContext(ctx, "Received commit hash of unexpected size",
 			slog.String("commit", *event.After))
 		return nil
