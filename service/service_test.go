@@ -63,8 +63,12 @@ func TestCommit(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			commit := loadCommit(t, tt.commitDataFile)
 			allowedSigners := populateAllowedSigners(t)
-			s := service.Service{AllowedSigners: allowedSigners}
-			ok, _ := s.VerifyCommit(commit)
+			s := service.Service{AllowedSignersScopes: []service.AllowedSignersScope{service.AllowedSignersScope{"*/*", allowedSigners}}}
+			retrievedAllowedSigners, err := s.GetAllowedSigners("example/repo")
+			if err != nil {
+				t.Fatalf("Expected to retrieve allowed signers, got error %s", err)
+			}
+			ok, _ := s.VerifyCommit(commit, retrievedAllowedSigners)
 			if ok != tt.ok {
 				t.Errorf("Expected verification to be %v but got %v instead", tt.ok, ok)
 			}

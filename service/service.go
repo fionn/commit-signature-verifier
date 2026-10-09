@@ -10,6 +10,8 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path"
+	"slices"
 	"strings"
 	"time"
 
@@ -31,16 +33,44 @@ type GitHub struct {
 	webhookSecret configuration.Secret
 }
 
+// AllowedSignersScope binds a repository owner/name pattern to a list of
+// allowed signers.
+type AllowedSignersScope struct {
+	// We should probably abolish this and have the allowed signers be
+	// retrievable dynamically (e.g. from a database lookup), rather than stored
+	// in the service struct, since it has the potential to be very large.
+	RepositoryPattern string
+	AllowedSigners    []xssh.AllowedSigner
+}
+
 // Service provides the GitHub client, signature configuration and methods to
 // handle commit payloads.
 type Service struct {
-	github         GitHub
-	AllowedSigners []xssh.AllowedSigner
+	github               GitHub
+	AllowedSignersScopes []AllowedSignersScope
+}
+
+// GetAllowedSigners returns a list of allowed signers scoped to repository
+// patterns that match the given repository owner/name.
+func (s Service) GetAllowedSigners(repository string) ([]xssh.AllowedSigner, error) {
+	// This is pretty bad. We might be returning duplicate signers, so maybe
+	// should use a set here.
+	var allowedSigners []xssh.AllowedSigner
+	for _, allowedSignersPerRepo := range s.AllowedSignersScopes {
+		ok, err := path.Match(allowedSignersPerRepo.RepositoryPattern, repository)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			allowedSigners = slices.Concat(allowedSigners, allowedSignersPerRepo.AllowedSigners)
+		}
+	}
+	return allowedSigners, nil
 }
 
 // VerifyCommit takes a github.Commit and list of allowed signers and verifies
 // the commit signature against that list.
-func (s Service) VerifyCommit(commit *github.Commit) (ok bool, description string) {
+func (s Service) VerifyCommit(commit *github.Commit, allowedSigners []xssh.AllowedSigner) (ok bool, description string) {
 	if !*commit.Verification.Verified {
 		description = fmt.Sprintf("Commit %s is %s.", (*commit.SHA)[:7], *commit.Verification.Reason)
 		slog.Info("Commit unverified on GitHub",
@@ -62,7 +92,7 @@ func (s Service) VerifyCommit(commit *github.Commit) (ok bool, description strin
 	// which is done at time of push.
 	timestamp := *commit.Committer.Date.GetTime()
 
-	if err := xssh.Verify(message, signature, signerIdentity, s.AllowedSigners, "git", timestamp); err != nil {
+	if err := xssh.Verify(message, signature, signerIdentity, allowedSigners, "git", timestamp); err != nil {
 		description = fmt.Sprintf("Commit %s has bad signature: %s.", (*commit.SHA)[:7], err.Error())
 		slog.Info("Commit has bad signature",
 			slog.String("commit", *commit.SHA),
@@ -108,6 +138,14 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) *
 
 	context := "commit-signature"
 
+	allowedSigners, err := s.GetAllowedSigners(*event.Repo.FullName)
+	if err != nil {
+		panic("fixme")
+	}
+	if len(allowedSigners) == 0 {
+		panic("no allowed signers")
+	}
+
 	repositoryCommit, _, err := s.github.Repositories.GetCommit(
 		ctx,
 		*event.Repo.Owner.Name,
@@ -132,7 +170,7 @@ func (s Service) statusFromEvent(ctx context.Context, event *github.PushEvent) *
 	commit.SHA = repositoryCommit.SHA
 
 	state := "failure"
-	ok, description := s.VerifyCommit(commit)
+	ok, description := s.VerifyCommit(commit, allowedSigners)
 	if ok {
 		state = "success"
 	}
@@ -234,9 +272,12 @@ func Run(version string) error {
 		return fmt.Errorf("failed to create GitHub client: %w", err)
 	}
 
+	// For now, we scope the allowed signers to every repository. We need to
+	// pass in the scope as a configuration option along with the signer lists,
+	// TBD on how exactly to do that.
 	service := Service{
-		github:         GitHub{githubClient, config.WebhookSecret},
-		AllowedSigners: config.AllowedSigners,
+		github:               GitHub{githubClient, config.WebhookSecret},
+		AllowedSignersScopes: []AllowedSignersScope{AllowedSignersScope{"*/*", config.AllowedSigners}},
 	}
 
 	r := chi.NewRouter()
