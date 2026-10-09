@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/go-github/v88/github"
 
+	"github.com/fionn/commit-signature-verifier/internal/configuration"
 	"github.com/fionn/commit-signature-verifier/internal/xssh"
 	"github.com/fionn/commit-signature-verifier/service"
 )
@@ -63,7 +64,10 @@ func TestCommit(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			commit := loadCommit(t, tt.commitDataFile)
 			allowedSigners := populateAllowedSigners(t)
-			s := service.Service{AllowedSignersScopes: []service.AllowedSignersScope{service.AllowedSignersScope{"*/*", allowedSigners}}}
+			s := service.Service{Scopes: []configuration.Scope{configuration.Scope{
+				RepositoryPattern: "*/*",
+				AllowedSigners:    allowedSigners,
+			}}}
 			retrievedAllowedSigners, err := s.GetAllowedSigners("example/repo")
 			if err != nil {
 				t.Fatalf("Expected to retrieve allowed signers, got error %s", err)

@@ -33,21 +33,11 @@ type GitHub struct {
 	webhookSecret configuration.Secret
 }
 
-// AllowedSignersScope binds a repository owner/name pattern to a list of
-// allowed signers.
-type AllowedSignersScope struct {
-	// We should probably abolish this and have the allowed signers be
-	// retrievable dynamically (e.g. from a database lookup), rather than stored
-	// in the service struct, since it has the potential to be very large.
-	RepositoryPattern string
-	AllowedSigners    []xssh.AllowedSigner
-}
-
 // Service provides the GitHub client, signature configuration and methods to
 // handle commit payloads.
 type Service struct {
-	github               GitHub
-	AllowedSignersScopes []AllowedSignersScope
+	github GitHub
+	Scopes []configuration.Scope
 }
 
 // GetAllowedSigners returns a list of allowed signers scoped to repository
@@ -56,7 +46,7 @@ func (s Service) GetAllowedSigners(repository string) ([]xssh.AllowedSigner, err
 	// This is pretty bad. We might be returning duplicate signers, so maybe
 	// should use a set here.
 	var allowedSigners []xssh.AllowedSigner
-	for _, allowedSignersPerRepo := range s.AllowedSignersScopes {
+	for _, allowedSignersPerRepo := range s.Scopes {
 		ok, err := path.Match(allowedSignersPerRepo.RepositoryPattern, repository)
 		if err != nil {
 			return nil, err
@@ -272,12 +262,9 @@ func Run(version string) error {
 		return fmt.Errorf("failed to create GitHub client: %w", err)
 	}
 
-	// For now, we scope the allowed signers to every repository. We need to
-	// pass in the scope as a configuration option along with the signer lists,
-	// TBD on how exactly to do that.
 	service := Service{
-		github:               GitHub{githubClient, config.WebhookSecret},
-		AllowedSignersScopes: []AllowedSignersScope{AllowedSignersScope{"*/*", config.AllowedSigners}},
+		github: GitHub{githubClient, config.WebhookSecret},
+		Scopes: config.Scopes,
 	}
 
 	r := chi.NewRouter()

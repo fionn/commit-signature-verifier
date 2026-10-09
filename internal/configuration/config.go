@@ -24,6 +24,14 @@ func (Secret) LogValue() slog.Value {
 	return slog.StringValue("[redacted]")
 }
 
+// Scope binds a repository pattern and list of allowed signers.
+type Scope struct {
+	// RepositoryPattern is a glob pattern for a repository in owner/name format.
+	RepositoryPattern string
+	// AllowedSignersPath is the path to the SSH allowed signers file.
+	AllowedSigners []xssh.AllowedSigner
+}
+
 // Configuration bundles all the parameters needed to execute the program.
 type Configuration struct {
 	// InstallationID is the GitHub application installation ID.
@@ -34,8 +42,8 @@ type Configuration struct {
 	PrivateKey Secret
 	// WebhookSecret is the secret used to validate webhook payloads from Github.
 	WebhookSecret Secret
-	// AllowedSignersPath is the path to the SSH allowed signers file.
-	AllowedSigners []xssh.AllowedSigner
+	// Scopes are the repository patterns and associated allowed signers.
+	Scopes []Scope
 }
 
 // FromEnv is a Configuration constructor that pulls configuration values from
@@ -86,7 +94,7 @@ func FromEnv() (*Configuration, error) {
 		AppID:          appID,
 		PrivateKey:     Secret([]byte(privateKey)),
 		WebhookSecret:  Secret([]byte(webhookSecret)),
-		AllowedSigners: allowedSigners,
+		Scopes:         []Scope{Scope{"*/*", allowedSigners}}, // FIXME: pass in patterns.
 	}, nil
 }
 
