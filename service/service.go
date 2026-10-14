@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httplog/v3"
 
@@ -239,15 +238,14 @@ func Run(version string) error {
 		AllowedSigners: config.AllowedSigners,
 	}
 
-	r := chi.NewRouter()
-	r.Use(httplog.RequestLogger(slog.Default(), &httplog.Options{
+	router := http.NewServeMux()
+	router.HandleFunc("POST /api/github/hook", service.handleWebhook)
+	router.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {})
+
+	loggingMiddleware := httplog.RequestLogger(slog.Default(), &httplog.Options{
 		Schema:        httplog.SchemaOTEL.Concise(true),
 		RecoverPanics: true,
-	}))
-	r.Use(middleware.AllowContentType("application/json"))
-	r.Use(middleware.SetHeader("x-version", version))
-	r.Post("/api/github/hook", service.handleWebhook)
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {})
+	})
 
 	address, ok := os.LookupEnv("ADDRESS")
 	if !ok {
@@ -255,8 +253,14 @@ func Run(version string) error {
 	}
 
 	server := &http.Server{
-		Addr:              address,
-		Handler:           r,
+		Addr: address,
+		Handler: loggingMiddleware(
+			middleware.SetHeader("x-version", version)(
+				middleware.AllowContentType("application/json")(
+					router,
+				),
+			),
+		),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
