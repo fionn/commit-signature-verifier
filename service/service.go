@@ -243,8 +243,9 @@ func Run(version string) error {
 	router.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {})
 
 	loggingMiddleware := httplog.RequestLogger(slog.Default(), &httplog.Options{
-		Schema:        httplog.SchemaOTEL.Concise(true),
-		RecoverPanics: true,
+		Schema:            httplog.SchemaOTEL.Concise(true),
+		RecoverPanics:     true,
+		LogRequestHeaders: []string{"x-forwarded-for"},
 	})
 
 	address, ok := os.LookupEnv("ADDRESS")
