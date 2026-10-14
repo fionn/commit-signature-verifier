@@ -26,6 +26,8 @@ func (Secret) LogValue() slog.Value {
 
 // Configuration bundles all the parameters needed to execute the program.
 type Configuration struct {
+	// Address is the address to listen on, in the form domain:port.
+	Address string
 	// InstallationID is the GitHub application installation ID.
 	InstallationID int64
 	// AppID is the GitHub application ID.
@@ -41,6 +43,11 @@ type Configuration struct {
 // FromEnv is a Configuration constructor that pulls configuration values from
 // environment variables.
 func FromEnv() (*Configuration, error) {
+	address, ok := os.LookupEnv("ADDRESS")
+	if !ok {
+		address = "localhost:8080"
+	}
+
 	installationIDStr, ok := os.LookupEnv("INSTALLATION_ID")
 	if !ok {
 		return nil, errors.New("missing INSTALLATION_ID")
@@ -82,6 +89,7 @@ func FromEnv() (*Configuration, error) {
 	slog.Debug("Loaded allowed signers", slog.Int("count", len(allowedSigners)))
 
 	return &Configuration{
+		Address:        address,
 		InstallationID: installationID,
 		AppID:          appID,
 		PrivateKey:     Secret([]byte(privateKey)),

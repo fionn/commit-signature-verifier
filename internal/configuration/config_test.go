@@ -19,6 +19,7 @@ func TestSecretRedaction(t *testing.T) {
 // Test setting configuration from environment.
 func TestFromEnv(t *testing.T) {
 	baseEnv := map[string]string{
+		"ADDRESS":                  "localhost:1234",
 		"INSTALLATION_ID":          "123",
 		"APP_ID":                   "456",
 		"PRIVATE_KEY":              "private key",

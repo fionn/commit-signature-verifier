@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -248,13 +247,8 @@ func Run(version string) error {
 		LogRequestHeaders: []string{"x-forwarded-for"},
 	})
 
-	address, ok := os.LookupEnv("ADDRESS")
-	if !ok {
-		address = "localhost:8080"
-	}
-
 	server := &http.Server{
-		Addr: address,
+		Addr: config.Address,
 		Handler: loggingMiddleware(
 			middleware.SetHeader("x-version", version)(
 				middleware.AllowContentType("application/json")(
@@ -265,9 +259,9 @@ func Run(version string) error {
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	slog.Info("Listening", slog.String("address", address))
+	slog.Info("Listening", slog.String("address", config.Address))
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		slog.Error("Server failed", slog.String("address", address),
+		slog.Error("Server failed", slog.String("address", config.Address),
 			slog.String("error", err.Error()))
 		return err
 	}
